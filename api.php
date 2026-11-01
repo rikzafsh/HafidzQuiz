@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', '0');   // jangan pernah mencemari JSON dengan pesan error
+ob_start();
 require __DIR__ . '/core.php';
 require __DIR__ . '/gen.php';
 
@@ -7,7 +9,7 @@ $in = json_decode(file_get_contents('php://input'), true) ?: [];
 
 function me() {
     if (empty($_SESSION['uid'])) return null;
-    $s = db()->prepare('SELECT id, username, xp, streak FROM users WHERE id=?'); $s->execute([$_SESSION['uid']]);
+    $s = db()->prepare('SELECT id, username, xp, streak, last_day FROM users WHERE id=?'); $s->execute([$_SESSION['uid']]);
     return $s->fetch() ?: null;
 }
 function need() { return me() ?? fail('Silakan masuk dahulu.', 401); }

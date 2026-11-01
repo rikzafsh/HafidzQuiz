@@ -17,7 +17,7 @@ function db(): PDO {
     }
     return $p;
 }
-function out($d, $code = 200) { http_response_code($code); header('Content-Type: application/json; charset=utf-8'); echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; }
+function out($d, $code = 200) { while (ob_get_level()) ob_end_clean(); http_response_code($code); header('Content-Type: application/json; charset=utf-8'); echo json_encode($d, JSON_UNESCAPED_UNICODE); exit; }
 function fail($m, $c = 400) { out(['error' => $m], $c); }
 
 // ---- Data Al-Qur'an ----
