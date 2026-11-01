@@ -36,7 +36,16 @@ function surah(int $id): array {
     }
     return $c[$id];
 }
-function thumns(): array { static $t; return $t ??= json_decode(file_get_contents(__DIR__ . '/data/thumn.json'), true); }
+function thumns(): array {
+    static $t;
+    if ($t === null) {
+        $t = array_values(json_decode(file_get_contents(__DIR__ . '/data/thumn.json'), true) ?: []);
+        foreach ($t as &$x) foreach (['hizb_number', 'thumn', 'sura_number', 'starting_aya'] as $k) $x[$k] = (int)($x[$k] ?? 0);
+        unset($x);
+        usort($t, fn($a, $b) => [$a['sura_number'], $a['starting_aya']] <=> [$b['sura_number'], $b['starting_aya']]); // urut menurut posisi di mushaf
+    }
+    return $t;
+}
 function juzOf(array $t): int { return (int)ceil($t['hizb_number'] / 2); }
 
 // Ayat thumn ke-$i: dari titik awalnya sampai sebelum titik awal thumn berikutnya
@@ -52,16 +61,13 @@ function thumnAyat(int $i): array {
     }
     return $out;
 }
-// 1 thumn -> 1..5 lesson (sekitar 6 ayat/lesson), lalu 1 test
-function lessons(array $ayat): array {
+// 1 thumn -> 1..5 node (sekitar 6 ayat/node), lalu 1 test. Tiap node berisi 3..5 lesson.
+function nodeChunks(array $ayat): array {
     $n = count($ayat); if (!$n) return [];
     $k = max(1, min(5, (int)ceil($n / 6)));
     return array_chunk($ayat, (int)ceil($n / $k));
 }
-function nodesOf(array $ayat): array {
-    $n = []; foreach (lessons($ayat) as $i => $_) $n[] = 'L' . ($i + 1);
-    $n[] = 'T'; return $n;
-}
+function lessonCount(array $chunk): int { $n = count($chunk); return $n <= 3 ? 3 : ($n <= 6 ? 4 : 5); }
 function rangeLabel(array $ayat): string {
     $a = $ayat[0]; $b = end($ayat); $n = $a['surah']['transliteration'];
     return $a['surah_id'] == $b['surah_id'] ? "$n {$a['ayah']}–{$b['ayah']}" : "$n {$a['ayah']} – {$b['surah']['transliteration']} {$b['ayah']}";

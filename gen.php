@@ -83,8 +83,11 @@ function genQ($type, $a, $pool) {
     return null;
 }
 
-function genQuestions($src, $pool, $n, $easy) {
-    $types = $easy ? ['nomor', 'sambung', 'lengkapi'] : ['nomor', 'sambung', 'sambung', 'lengkapi', 'lengkapi', 'sebelum', 'sesudah', 'ikrab'];
+// $stage: 'intro' (lesson pertama, ringan) | 'mid' | 'master' (lesson terakhir, paling menantang)
+function genQuestions($src, $pool, $n, $stage = 'mid') {
+    if ($stage === true) $stage = 'intro';
+    $types = ['intro' => ['nomor', 'sambung', 'lengkapi'], 'master' => ['sambung', 'lengkapi', 'lengkapi', 'sebelum', 'sesudah', 'ikrab', 'ikrab']][$stage]
+        ?? ['nomor', 'sambung', 'sambung', 'lengkapi', 'lengkapi', 'sebelum', 'sesudah', 'ikrab'];
     $order = [];
     while (count($order) < $n) { $s = $src; shuffle($s); $order = array_merge($order, $s); }
     $qs = [];

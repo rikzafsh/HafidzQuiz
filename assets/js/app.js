@@ -47,21 +47,57 @@ async function juzView() {
       el('b', {}, 'Juz ' + j.juz), el('small', {}, `${j.done}/${j.total} thumn`), el('i', {}, el('u', { style: `width:${100 * j.done / j.total}%` })))))));
 }
 
+// ---- Tombol oktagon dengan cincin progres ----
+const oct = (cx, cy, r) => {
+  const v = [...Array(8)].map((_, k) => { const a = (-67.5 + 45 * k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+  return [[cx, cy - r * Math.cos(Math.PI / 8)], ...v].map(p => p.map(x => x.toFixed(1)).join(',')).join(' ');
+};
+const nodeSvg = (locked, pct) => {
+  const L = 16 * 52 * Math.sin(Math.PI / 8);
+  return `<svg viewBox="0 0 112 120" aria-hidden="true">${locked ? '' :
+    `<polygon class="trk" points="${oct(56, 54, 52)}"/><polygon class="prg" points="${oct(56, 54, 52)}" stroke-dasharray="${(pct / 100 * L).toFixed(1)} ${L.toFixed(1)}"/>`}` +
+    `<polygon class="shd" points="${oct(56, 62, 40)}"/><polygon class="face" points="${oct(56, 54, 40)}"/></svg>`;
+};
+
 async function pathView(juz) {
   const d = await api('units', null, '&juz=' + juz); me = d.user;
   const off = [0, 38, 58, 38, 0, -38, -58, -38];
-  mount(bar(juzView), el('div', { class: 'wrap' }, el('h2', {}, 'Juz ' + juz),
-    d.units.map(u => el('section', { class: 'unit' },
+  let pop = null;
+  const closePop = () => { pop?.remove(); pop = null; };
+  const popup = (row, u, n, ox) => {
+    closePop();
+    const lock = n.state === 'locked', test = n.id === 'T', done = n.state === 'done';
+    const start = () => session(u.i, n.id, test ? 0 : (done ? n.lessons : n.lesson), juz);
+    const btn = lock ? '' : el('button', { class: 'pbtn', onclick: start }, `${done ? (test ? 'Ulangi' : 'Latih lagi') : 'Mulai'} +${n.xp} XP`);
+    pop = el('div', { class: 'pop' + (lock ? ' lk' : ''), style: `--ox:${ox}px`, onclick: e => e.stopPropagation() },
+      el('b', {}, test ? 'Test ' + u.title : n.label),
+      el('span', {}, lock ? 'Selesaikan langkah sebelumnya dulu.' : test ? '15 soal acak dari seluruh thumn · lulus ≥ 80%'
+        : done ? `Selesai · ${n.lessons} dari ${n.lessons} lesson` : `Lesson ${n.lesson} dari ${n.lessons}`),
+      lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn);
+    pop._start = lock ? null : start; pop._key = u.i + n.id;
+    row.after(pop); btn?.focus?.({ preventScroll: true }); pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
+    d.units.map(u => el('section', { class: 'unit u' + ((u.thumn - 1) % 8 + 1) },
       el('div', { class: 'uh' }, el('small', {}, `Hizb ${u.hizb} · Thumn ${u.thumn}`), el('b', {}, u.title)),
-      el('div', { class: 'path' }, u.nodes.map((n, k) => el('div', { class: 'nw', style: `transform:translateX(${off[k % 8]}px)` },
-        el('button', { class: 'node ' + n.state, 'aria-label': n.id === 'T' ? 'Test' : 'Lesson ' + n.id.slice(1),
-          onclick: () => n.state === 'locked' ? toast('Selesaikan langkah sebelumnya dulu') : session(u.i, n.id, juz) },
-          n.state === 'locked' ? '🔒' : n.id === 'T' ? '🏆' : n.state === 'done' ? '✓' : n.id.slice(1)),
-        el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : ''))))))));
+      u.empty ? el('p', { class: 'err' }, 'Tidak ada ayat pada thumn ini — periksa titik awalnya di data/thumn.json (jalankan cek_thumn.php).') : '',
+      el('div', { class: 'path' }, u.nodes.map((n, k) => {
+        const ox = off[k % 8], locked = n.state === 'locked', test = n.id === 'T';
+        const pct = test ? (n.state === 'done' ? 100 : 0) : 100 * n.done / n.lessons;
+        const b = el('button', { class: 'node ' + n.state, 'aria-label': test ? 'Test' : n.label,
+          onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
+          el('span', { class: 'ic' }, locked ? '🔒' : test ? '🏆' : n.state === 'done' ? '✓' : '★'));
+        b.insertAdjacentHTML('afterbegin', nodeSvg(locked, pct));
+        const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
+          el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' && !test ? `${n.done}/${n.lessons}` : '')));
+        return row;
+      }))))));
+  keys = e => { if (e.key === 'Escape') closePop(); else if (e.key === 'Enter' && pop?._start) { e.preventDefault(); pop._start(); } };
+  document.querySelector('.node.open')?.scrollIntoView({ block: 'center' });
 }
 
-async function session(thumn, node, juz) {
-  const d = await api('quiz', null, `&thumn=${thumn}&node=${node}`);
+async function session(thumn, node, lesson, juz) {
+  const d = await api('quiz', null, `&thumn=${thumn}&node=${node}&lesson=${lesson}`);
   const total = d.questions.length, queue = [...d.questions];
   let hearts = 5, done = 0, ok = 0;
   const pb = el('u'), hr = el('span', { class: 'hearts' }), body = el('div'), foot = el('div', { class: 'foot' });
@@ -159,19 +195,22 @@ async function session(thumn, node, juz) {
     foot.replaceChildren(btn);
   }
 
-  const retry = () => session(thumn, node, juz);
+  const retry = () => session(thumn, node, lesson, juz);
   const lose = () => {
     mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, '💔'), el('h2', {}, 'Nyawa habis'), el('p', { class: 'mut' }, 'Tenang, ulangi lagi — muroja’ah itu proses.'),
       el('button', { class: 'btn', onclick: retry }, 'Coba lagi'), el('p'), el('button', { class: 'btn alt', onclick: () => pathView(juz) }, 'Kembali')));
     onEnter(retry);
   };
   async function finish() {
-    const r = await api('complete', { thumn, node, correct: ok, total });
+    const r = await api('complete', { thumn, node, lesson, correct: ok, total });
     me.xp = r.xp; me.streak = r.streak;
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, r.passed ? '🎉' : '😕'),
-      el('h2', {}, r.passed ? (node === 'T' ? 'Test lulus!' : 'Lesson selesai!') : 'Belum lulus'),
-      el('p', { class: 'mut' }, r.passed ? '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : 'Test butuh skor minimal 80%.'),
-      el('div', { class: 'stat' }, el('div', {}, el('small', {}, 'Skor'), el('b', {}, r.pct + '%')), el('div', {}, el('small', {}, 'XP'), el('b', {}, '+' + r.gain)), el('div', {}, el('small', {}, 'Streak'), el('b', {}, '🔥' + r.streak))),
+    const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars);
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : r.nodeDone ? '🏅' : '🎉'),
+      el('h2', {}, !r.passed ? 'Belum lulus' : node === 'T' ? 'Test lulus!' : r.nodeDone ? 'Node selesai!' : 'Lesson selesai!'),
+      el('p', { class: 'mut' }, !r.passed ? 'Test butuh skor minimal 80%.' : (node === 'T' ? '' : `Lesson ${r.lesson} dari ${r.lessons} · `) + stars),
+      el('div', { class: 'stat' }, el('div', {}, el('small', {}, 'Skor'), el('b', {}, r.pct + '%')),
+        el('div', {}, el('small', {}, r.bonus ? `XP (termasuk bonus ${r.bonus})` : 'XP'), el('b', {}, '+' + r.gain)),
+        el('div', {}, el('small', {}, 'Streak'), el('b', {}, '🔥' + r.streak))),
       el('button', { class: 'btn', onclick: () => pathView(juz) }, 'Lanjut'), el('p'), r.passed ? '' : el('button', { class: 'btn alt', onclick: retry }, 'Ulangi')));
     onEnter(r.passed ? () => pathView(juz) : retry);
   }

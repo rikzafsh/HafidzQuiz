@@ -19,13 +19,9 @@ button,input{font:inherit;color:inherit}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
 .juz{background:var(--soft);border:2px solid var(--line);border-bottom-width:4px;border-radius:16px;padding:14px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:4px}
 .juz small{color:var(--mut)}.juz i{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.juz u{display:block;height:100%;background:var(--g)}
-.unit{margin:24px 0}.uh{background:var(--g);color:#fff;border-radius:16px;padding:12px 16px;display:flex;flex-direction:column}
+.unit{margin:24px 0}
 .path{display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 0}
 .nw{text-align:center}
-.node{width:72px;height:72px;border-radius:50%;border:0;font-size:26px;font-weight:800;color:#fff;cursor:pointer;background:var(--g);box-shadow:0 6px 0 var(--gd)}
-.node.done{background:var(--y);box-shadow:0 6px 0 var(--yd)}
-.node.locked{background:var(--line);box-shadow:0 6px 0 #b7b7b7;color:#999}
-.node.open{animation:pulse 1.6s infinite}
 @keyframes pulse{50%{transform:scale(1.07)}}
 .stars{color:var(--y);font-size:14px;letter-spacing:2px;min-height:21px}
 .sess{display:flex;flex-direction:column;min-height:100vh;padding-bottom:190px}
@@ -56,3 +52,29 @@ button,input{font:inherit;color:inherit}
 .slot.hot{outline:3px solid var(--selb)}
 .hint{color:var(--mut);font-size:13px;text-align:center;margin-top:16px}
 @media(hover:none){.kn,.hint{display:none}}
+
+/* ---- Warna pelangi per thumn (1 merah → 8 ungu) ---- */
+:root{--lk:#e5e5e5;--lkd:#b7b7b7}
+@media(prefers-color-scheme:dark){:root{--lk:#37464f;--lkd:#232f36}}
+.unit{--c:var(--g);--cd:var(--gd);--ct:#fff}
+.u1{--c:#ff4b4b;--cd:#d33b3b}.u2{--c:#ff9600;--cd:#cc7800}.u3{--c:#f2c200;--cd:#bf9a00;--ct:#3d3000}.u4{--c:#58cc02;--cd:#46a302}
+.u5{--c:#00bfa5;--cd:#009985}.u6{--c:#1cb0f6;--cd:#1790c8}.u7{--c:#5b6cf0;--cd:#4553c2}.u8{--c:#a560e8;--cd:#8444ba}
+.uh{background:var(--c);color:var(--ct);border-radius:16px;border-bottom:4px solid var(--cd);padding:12px 16px;display:flex;flex-direction:column}
+.row{width:100%;display:flex;flex-direction:column;align-items:center}
+/* ---- Node oktagon ---- */
+.node{position:relative;display:block;width:84px;height:90px;background:none;border:0;padding:0;cursor:pointer}
+.node svg{width:100%;height:100%;overflow:visible}
+.node .face{fill:var(--c)}.node .shd{fill:var(--cd)}
+.node.locked .face{fill:var(--lk)}.node.locked .shd{fill:var(--lkd)}
+.trk,.prg{fill:none;stroke-width:5;stroke-linejoin:round}.trk{stroke:var(--line)}.prg{stroke:var(--c)}
+.node .ic{position:absolute;inset:0 0 8px 0;display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--ct);pointer-events:none}
+.node.locked .ic{color:var(--mut)}
+.node:active .face,.node:active .ic{transform:translateY(5px)}
+.node:focus-visible{outline:3px solid var(--selb);outline-offset:4px;border-radius:14px}
+.node.open{animation:pulse 1.8s infinite}
+/* ---- Popup lesson ---- */
+.pop{--ox:0px;position:relative;width:min(320px,100%);margin:12px 0 6px;background:var(--c);color:var(--ct);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;text-align:left}
+.pop::before{content:"";position:absolute;top:-8px;left:calc(50% + var(--ox) - 8px);width:16px;height:16px;background:var(--c);transform:rotate(45deg);border-radius:3px}
+.pop.lk{background:var(--lk);color:var(--fg)}.pop.lk::before{background:var(--lk)}
+.pop small{opacity:.9}
+.pbtn{margin-top:8px;background:#fff;color:var(--cd);border:0;border-bottom:4px solid rgba(0,0,0,.18);border-radius:12px;padding:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer}
