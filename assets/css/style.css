@@ -1,0 +1,290 @@
+:root {
+    --purple: #703996;
+    --light-blue: #29aafe;
+    --royal-blue: #3d46e0;
+    --lavender: #cdcff6;
+    --white: #ffffff;
+    --success: #009339;
+    --danger: #dc0141;
+}
+
+* { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+body {
+    background-color: var(--lavender);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    background: var(--white);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+h2 { color: var(--purple); text-align: center; margin-bottom: 25px; }
+
+/* Form Styling */
+.form-group { margin-bottom: 20px; }
+label { display: block; font-weight: bold; margin-bottom: 8px; color: var(--royal-blue); }
+input[type="text"], input[type="number"], select {
+    width: 100%; padding: 12px; border: 2px solid var(--lavender);
+    border-radius: 10px; transition: 0.3s;
+}
+input:focus { border-color: var(--light-blue); outline: none; }
+
+/* Button Styling */
+.btn-primary {
+    background-color: var(--royal-blue); color: white;
+    border: none; padding: 15px; width: 100%;
+    border-radius: 10px; font-size: 16px; cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+}
+.btn-primary:hover { background-color: var(--purple); transform: translateY(-2px); }
+
+/* Quiz Styles */
+.question-box {
+    background: #f8f9ff; padding: 20px; border-radius: 15px;
+    text-align: right; font-size: 24px; line-height: 1.8;
+    border-right: 5px solid var(--purple); margin-bottom: 20px;
+}
+
+.option-container { display: grid; gap: 12px; }
+.option-btn {
+    background: var(--white); border: 2px solid var(--lavender);
+    padding: 15px; border-radius: 12px; cursor: pointer;
+    text-align: right; font-size: 18px; transition: 0.3s;
+}
+.option-btn:hover { border-color: var(--light-blue); background: #f0f7ff; }
+
+.correct { background-color: var(--success) !important; color: white; border-color: var(--success); }
+.wrong { background-color: var(--danger) !important; color: white; border-color: var(--danger); }
+
+#feedback { margin-top: 15px; text-align: center; font-weight: bold; font-size: 18px; }
+
+/* Responsive */
+@media (max-width: 480px) {
+    .container { padding: 20px; }
+    .question-box { font-size: 20px; }
+}
+
+/* 1. Embed Font LPMQ */
+@font-face {
+    font-family: 'LPMQ IsepMisbah';
+    src: url('../fonts/LPMQ IsepMisbah.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* 2. Pengaturan Area Soal */
+#question-area {
+    font-family: 'LPMQ IsepMisbah', serif;
+    font-size: 22px; /* Ukuran lebih besar agar nyaman */
+    direction: rtl;  /* Paksa RTL */
+    text-align: right;
+    line-height: 2.2;
+    padding: 20px;
+    background: #fcfcfc;
+    border-radius: 12px;
+}
+
+/* 3. Pengaturan Tombol Pilihan */
+.option-btn {
+    font-family: 'LPMQ IsepMisbah', serif;
+    font-size: 22px;
+    direction: rtl;
+    text-align: right;
+    padding: 15px;
+    margin-bottom: 10px;
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* 1. Hilangkan efek tebal (bold) pada ayat feedback */
+.ayat-box {
+    font-family: 'LPMQ IsepMisbah', serif !important;
+    font-weight: normal !important; /* Mencegah huruf Arab menjadi tebal otomatis */
+    direction: rtl;
+    text-align: right;
+    font-size: 22px;
+    line-height: 2;
+    margin-top: 15px;
+    padding: 20px;
+    background: #f0f7ff;
+    border-radius: 10px;
+    color: #4a148c;
+}
+
+/* 2. Melebarkan Kolom Utama */
+/* Cari bagian yang mengatur lebar kolom utama aplikasi Anda, 
+   lalu ubah nilai max-width dan padding-nya menjadi seperti ini: */
+.container { 
+    max-width: 950px !important; /* Naikkan nilainya, standarnya mungkin 600px */
+    width: 95%; /* Agar tidak jebol saat dibuka dari layar HP */
+    margin: 0 auto;
+    padding: 40px; /* Tambahkan ruang (padding) agar lebih bernapas */
+}
+
+/* --- Gaya Khusus Soal Lengkapi Ayat --- */
+.ayah-words-container {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    direction: rtl; /* Penting agar susunan kata Arab dari kanan */
+    line-height: 2.5;
+}
+
+.word-static {
+    font-family: 'LPMQ IsepMisbah', serif;
+    font-size: 22px;
+}
+
+/* Area kosong rumpang */
+.drop-zone {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 90px;
+    height: 55px;
+    border-bottom: 3px dashed #888;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    margin: 0 5px;
+    vertical-align: middle;
+}
+
+/* Area penampung kata acak di bawah */
+#words-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+    padding: 25px;
+    background: #eef2f6;
+    border-radius: 12px;
+    min-height: 80px;
+}
+
+/* Balok kata yang bisa diseret */
+.draggable-word {
+    font-family: 'LPMQ IsepMisbah', serif;
+    font-size: 22px;
+    padding: 5px 20px;
+    background: #fff;
+    border: 2px solid #5c6bc0;
+    color: #333;
+    border-radius: 8px;
+    cursor: grab;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    user-select: none;
+    direction: rtl;
+}
+
+.draggable-word:active {
+    cursor: grabbing;
+}
+
+/* Styling Layar Hasil */
+.result-stats {
+    background: #f8f9fa;
+    border: 2px solid var(--lavender);
+    padding: 20px;
+    border-radius: 15px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+.result-stats p {
+    font-size: 16px;
+    margin: 12px 0;
+    color: #444;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.result-stats span {
+    font-weight: bold;
+    color: var(--royal-blue);
+    font-size: 18px;
+}
+
+#res-score {
+    color: var(--success);
+    font-size: 24px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Layout Grid untuk Hasil */
+.result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.result-card {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    padding: 20px 10px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+/* Memberi warna berbeda untuk kartu skor utama */
+.result-card.primary {
+    background: #fdfdfd;
+    border: 2px solid var(--royal-blue);
+    padding: 20px 10px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+}
+
+.result-card.primary .card-label, 
+.result-card.primary .card-value {
+    color: white;
+}
+
+.card-label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--royal-blue);
+}
+
+#res-score {
+    font-size: 32px;
+}
+
+/* Responsif untuk HP agar tidak sempit */
+@media (max-width: 480px) {
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+}
