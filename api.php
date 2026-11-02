@@ -54,8 +54,8 @@ case 'units':
     foreach ($T as $i => $t) {
         if (juzOf($t) !== $juz) continue;
         $ayat = thumnAyat($i);
-        $unit = ['i' => $i, 'hizb' => $t['hizb_number'], 'thumn' => $t['thumn'], 'empty' => !$ayat, 'nodes' => [],
-                 'title' => $ayat ? rangeLabel($ayat) : "Hizb {$t['hizb_number']} · Thumn {$t['thumn']}"];
+        $unit = ['i' => $i, 'hizb' => $t['hizb_number'], 'thumn' => $t['thumn'], 'empty' => !$ayat, 'bad' => !$t['ok'], 'nodes' => [],
+                 'title' => $ayat ? rangeLabel($ayat) : ($t['ok'] ? 'Tidak ada ayat' : 'Titik awal tidak konsisten')];
         $open = $i === 0 || juzOf($T[$i - 1]) !== $juz || thumnDone($pr, $i - 1); // thumn pertama tiap juz selalu terbuka
         $prev = true;
         foreach (nodeChunks($ayat) as $ni => $ch) {

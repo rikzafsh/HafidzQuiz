@@ -80,7 +80,7 @@ async function pathView(juz) {
   mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
     d.units.map(u => el('section', { class: 'unit u' + ((u.thumn - 1) % 8 + 1) },
       el('div', { class: 'uh' }, el('small', {}, `Hizb ${u.hizb} · Thumn ${u.thumn}`), el('b', {}, u.title)),
-      u.empty ? el('p', { class: 'err' }, 'Tidak ada ayat pada thumn ini — periksa titik awalnya di data/thumn.json (jalankan cek_thumn.php).') : '',
+      u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya. Jalankan cek_thumn.php untuk usulan perbaikan.' : 'Tidak ada ayat pada thumn ini — periksa data/thumn.json dan file surahnya.') : '',
       el('div', { class: 'path' }, u.nodes.map((n, k) => {
         const ox = off[k % 8], locked = n.state === 'locked', test = n.id === 'T';
         const pct = test ? (n.state === 'done' ? 100 : 0) : 100 * n.done / n.lessons;
