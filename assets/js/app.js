@@ -64,6 +64,7 @@ const PHASE = {
   Mahir: 'Ditambah mencocokkan ayat, i’rab, kata yang mirip, dan kata terakhir ayat.',
 };
 
+const KIND = { thumn: 'Thumn', hizb: 'Hizb', juz: 'Juz' };
 async function pathView(juz) {
   const d = await api('units', null, '&juz=' + juz); me = d.user;
   const off = [0, 38, 58, 38, 0, -38, -58, -38];
@@ -71,36 +72,38 @@ async function pathView(juz) {
   const closePop = () => { pop?.remove(); pop = null; };
   const popup = (row, u, n, ox) => {
     closePop();
-    const lock = n.state === 'locked', done = n.state === 'done';
-    const start = () => session(u.i, n.level, juz);
+    const lock = n.state === 'locked', done = n.state === 'done', kind = KIND[u.kind];
+    const start = () => session(u.i, n.level, n.lesson, juz, kind);
     const btn = lock ? '' : el('button', { class: 'pbtn', onclick: start }, `${done ? 'Latih lagi' : 'Mulai'} +${n.xp} XP`);
     pop = el('div', { class: 'pop' + (lock ? ' lk' : ''), style: `--ox:${ox}px`, onclick: e => e.stopPropagation() },
       el('b', {}, `Level ${n.level} dari 8 · ${n.phase}`),
-      el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : n.final ? 'Ujian akhir thumn · 15 soal · lulus dengan skor ≥ 80%.' : PHASE[n.phase]),
+      el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : `${done ? 'Selesai · ' : ''}Lesson ${n.lesson} dari ${n.lessons}`),
+      lock ? '' : el('small', {}, n.exam ? `Ujian akhir ${kind.toLowerCase()} · 15 soal · lulus dengan skor ≥ 80%.` : PHASE[n.phase]),
       lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn);
     pop._start = lock ? null : start; pop._key = u.i + n.id;
     row.after(pop); btn?.focus?.({ preventScroll: true }); pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
+  const cls = u => u.kind === 'hizb' ? 9 : u.kind === 'juz' ? 10 : (u.thumn - 1) % 8 + 1;   // thumn: pelangi 1-8 | hizb: abu kebiruan | juz: emas
   mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
-    d.units.map(u => el('section', { class: 'unit u' + ((u.thumn - 1) % 8 + 1) },
-      el('div', { class: 'uh' }, el('small', {}, `Hizb ${u.hizb} · Thumn ${u.thumn}`), el('b', {}, u.title)),
-      u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya.' : 'Tidak ada ayat pada thumn ini — periksa data/thumn.json dan file surahnya.') : '',
+    d.units.map(u => el('section', { class: 'unit u' + cls(u) },
+      el('div', { class: 'uh' }, el('small', {}, u.label), el('b', {}, u.title)),
+      u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya.' : 'Tidak ada ayat pada unit ini — periksa data/thumn.json dan file surahnya.') : '',
       el('div', { class: 'path' }, u.nodes.map((n, k) => {
         const ox = off[k % 8], locked = n.state === 'locked';
         const b = el('button', { class: 'node ' + n.state, 'aria-label': `Level ${n.level}`,
           onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
           el('span', { class: 'ic' }, locked ? '🔒' : n.state === 'done' ? '✓' : n.final ? '🏆' : n.level));
-        b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 0));
+        b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 100 * n.done / n.lessons));
         const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
-          el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? n.phase : '')));
+          el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
         return row;
       }))))));
   keys = e => { if (e.key === 'Escape') closePop(); else if (e.key === 'Enter' && pop?._start) { e.preventDefault(); pop._start(); } };
   document.querySelector('.node.open')?.scrollIntoView({ block: 'center' });
 }
 
-async function session(thumn, level, juz) {
-  const d = await api('quiz', null, `&thumn=${thumn}&level=${level}`);
+async function session(unit, level, lesson, juz, kind = 'Thumn') {
+  const d = await api('quiz', null, `&unit=${unit}&level=${level}&lesson=${lesson}`);
   const total = d.questions.length, queue = [...d.questions];
   let hearts = 5, done = 0, ok = 0;
   const pb = el('u'), hr = el('span', { class: 'hearts' }), body = el('div'), foot = el('div', { class: 'foot' });
@@ -147,12 +150,16 @@ async function session(thumn, level, juz) {
         }
       };
     } else if (q.t === 'match') {
-      // Ketuk satu item di tiap kolom (urutan bebas). Salah pasangan = nyawa berkurang, benar = item hilang.
+      // Kolom KIRI = akhir ayat / nomor ayat (tombol 1-5), kolom KANAN = awal ayat (tombol Q W E R T). Satu grid -> tinggi tiap baris sama.
       const rtl = q.rmode === 'ar';
       let sel = null, remaining = q.left.length, mistakes = 0, locked = false;
-      const items = { L: [], R: [] };
-      const mk = (s, list) => list.map((it, i) => { const b = el('button', { class: 'mi ' + (s === 'L' || rtl ? 'ar' : 'num'), dir: s === 'L' || rtl ? 'rtl' : null, onclick: () => pick(s, i) },
-        el('span', { class: 'kn' }, s === 'L' ? i + 1 : 'QWERT'[i]), it.text); items[s].push(b); return b; });
+      const items = { L: [], R: [] };   // L = awal ayat (q.left), R = akhir/nomor (q.right)
+      const mk = (s, list) => list.map((it, i) => {
+        const ar = s === 'L' || rtl;
+        const b = el('button', { class: 'mi ' + (ar ? 'ar' : 'num'), dir: ar ? 'rtl' : null, onclick: () => pick(s, i) },
+          el('span', { class: 'kn' }, s === 'R' ? i + 1 : 'QWERT'[i]), it.text);
+        items[s].push(b); return b;
+      });
       const pick = (s, i) => {
         const b = items[s][i]; if (locked || b.classList.contains('ok')) return;
         if (!sel || sel.s === s) { sel && items[sel.s][sel.i].classList.remove('sel'); sel = { s, i }; b.classList.add('sel'); return; }
@@ -166,13 +173,14 @@ async function session(thumn, level, juz) {
           if (hearts <= 0) { locked = true; setTimeout(lose, 600); }
         }
       };
-      body.replaceChildren(title, el('div', { class: 'match' }, el('div', { class: 'mcol' }, mk('L', q.left)), el('div', { class: 'mcol' }, mk('R', q.right))),
+      const A = mk('R', q.right), B = mk('L', q.left);                       // A = kiri, B = kanan
+      body.replaceChildren(title, el('div', { class: 'match' }, A.flatMap((a, i) => [a, B[i]])),
         el('p', { class: 'hint' }, 'Ketuk satu di tiap kolom · atau tekan 1–5 (kiri) dan Q W E R T (kanan)'));
       btn.textContent = 'Cocokkan semua pasangan'; btn.disabled = true;
       keys = e => {
-        const k = e.key.toLowerCase(), li = /^[1-9]$/.test(k) ? +k - 1 : -1, ri = k.length === 1 ? 'qwert'.indexOf(k) : -1;
-        if (li >= 0 && li < items.L.length) { e.preventDefault(); pick('L', li); }
-        else if (ri >= 0 && ri < items.R.length) { e.preventDefault(); pick('R', ri); }
+        const k = e.key.toLowerCase(), ri = /^[1-9]$/.test(k) ? +k - 1 : -1, li = k.length === 1 ? 'qwert'.indexOf(k) : -1;
+        if (ri >= 0 && ri < items.R.length) { e.preventDefault(); pick('R', ri); }
+        else if (li >= 0 && li < items.L.length) { e.preventDefault(); pick('L', li); }
       };
     } else {
       const sl = q.ans.map(() => null), area = el('div', { class: 'ayat', dir: 'rtl' }), pool = el('div', { class: 'tiles', dir: 'rtl' });
@@ -226,18 +234,18 @@ async function session(thumn, level, juz) {
     foot.replaceChildren(btn);
   }
 
-  const retry = () => session(thumn, level, juz);
+  const retry = () => session(unit, level, lesson, juz, kind);
   const lose = () => {
     mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, '💔'), el('h2', {}, 'Nyawa habis'), el('p', { class: 'mut' }, 'Tenang, ulangi lagi — muroja’ah itu proses.'),
       el('button', { class: 'btn', onclick: retry }, 'Coba lagi'), el('p'), el('button', { class: 'btn alt', onclick: () => pathView(juz) }, 'Kembali')));
     onEnter(retry);
   };
   async function finish() {
-    const r = await api('complete', { thumn, level, correct: ok, total });
+    const r = await api('complete', { unit, level, lesson, correct: ok, total });
     me.xp = r.xp; me.streak = r.streak;
     const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars);
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : r.thumnDone ? '🏅' : '🎉'),
-      el('h2', {}, !r.passed ? 'Belum lulus' : r.thumnDone ? 'Thumn selesai!' : `Level ${r.level} selesai!`),
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : r.unitDone ? '🏅' : r.levelDone ? '🎊' : '🎉'),
+      el('h2', {}, !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari 4 selesai!`),
       el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : stars),
       el('div', { class: 'stat' }, el('div', {}, el('small', {}, 'Skor'), el('b', {}, r.pct + '%')),
         el('div', {}, el('small', {}, r.bonus ? `XP (termasuk bonus ${r.bonus})` : 'XP'), el('b', {}, '+' + r.gain)),

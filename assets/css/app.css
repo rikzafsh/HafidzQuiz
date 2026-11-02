@@ -80,10 +80,14 @@ button,input{font:inherit;color:inherit}
 .pbtn{margin-top:8px;background:#fff;color:var(--cd);border:0;border-bottom:4px solid rgba(0,0,0,.18);border-radius:12px;padding:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;cursor:pointer}
 
 /* ---- Soal pasangan (match) ---- */
-.match{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mcol{display:grid;gap:10px;align-content:start}
-.mi{position:relative;background:var(--bg);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:14px 8px;cursor:pointer;min-height:64px;line-height:1.9}
+.match{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px}
+.mi{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;background:var(--bg);border:2px solid var(--line);border-bottom-width:4px;border-radius:14px;padding:14px 8px;cursor:pointer;min-height:64px;line-height:1.9}
 .mi.ar{font-family:"LPMQ IsepMisbah","Scheherazade New",serif;font-size:22px}.mi.num{font-size:18px;font-weight:700}
 .mi.sel{background:var(--sel);border-color:var(--selb)}.mi.ok{visibility:hidden}
 .mi.bad{border-color:var(--r);background:#ff4b4b22;animation:shake .35s}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
 .ayat.sm{white-space:pre-line}
+
+/* ---- Unit ulasan: hizb (abu kebiruan) dan juz (emas) ---- */
+.u9{--c:#5b6b7b;--cd:#44525f}.u10{--c:#e8b100;--cd:#b88a00;--ct:#3d3000}
+.uh .tag{display:inline-block;margin-left:6px;padding:0 8px;border-radius:8px;background:rgba(0,0,0,.18);font-size:12px}
