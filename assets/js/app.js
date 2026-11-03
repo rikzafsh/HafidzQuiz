@@ -29,6 +29,7 @@ const bar = back => el('header', { class: 'top' },
   me.dev ? el('button', { class: 'chip dev' + (devOn ? ' on' : ''), title: 'Mode developer sementara: buka level terkunci untuk pengetesan',
     onclick: () => { devOn = !devOn; store.set('hq_dev', devOn ? '1' : '0'); redraw?.(); } }, devOn ? '🛠 ON' : '🛠') : '',
   el('span', { class: 'chip' }, '🔥 ' + me.streak), el('span', { class: 'chip' }, '⭐ ' + me.xp), el('span', { class: 'chip', title: 'Dirham' }, '🪙 ' + me.dirham),
+  me.admin ? el('a', { class: 'chip', href: 'admin.php', title: 'Laporan masukan (admin)' }, '📊') : '',
   el('a', { class: 'chip', href: 'index.php', title: 'Muroja’ah bebas' }, '📖'),
   el('button', { class: 'ico', onclick: logout, title: 'Keluar' }, '⎋'));
 
@@ -71,6 +72,7 @@ const PHASE = {
 };
 
 const KIND = { thumn: 'Thumn', hizb: 'Hizb', juz: 'Juz' };
+const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 const chestSvg = open => `<svg viewBox="0 0 72 64" aria-hidden="true"><rect x="8" y="30" width="56" height="28" rx="6" fill="#9a5b1c"/><rect x="8" y="30" width="56" height="8" fill="#7d4812"/>` +
   (open ? `<g transform="rotate(-30 8 30)"><path d="M8 30V22a14 14 0 0 1 14-14h28a14 14 0 0 1 14 14v8z" fill="#c27a26"/></g><circle cx="26" cy="27" r="5.5" fill="#ffd23f"/><circle cx="38" cy="23" r="5.5" fill="#ffc400"/><circle cx="49" cy="28" r="5.5" fill="#ffd23f"/>`
     : `<path d="M8 30V22a14 14 0 0 1 14-14h28a14 14 0 0 1 14 14v8z" fill="#c27a26"/><rect x="31" y="24" width="10" height="16" rx="3" fill="#ffd23f"/><circle cx="36" cy="32" r="2.4" fill="#7d4812"/>`) + `</svg>`;
@@ -82,6 +84,7 @@ async function pathView(juz) {
   let pop = null;
   const closePop = () => { pop?.remove(); pop = null; };
   const reload = async () => { const y = scrollY; await pathView(juz); scrollTo(0, y); };
+  const place = (row, key, start, btn) => { pop._start = start; pop._key = key; row.after(pop); btn?.focus?.({ preventScroll: true }); pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
   const popup = (row, u, n, ox) => {
     closePop();
     const forced = n.state === 'locked' && devOn, lock = n.state === 'locked' && !devOn, done = n.state === 'done', kind = KIND[u.kind];
@@ -89,25 +92,42 @@ async function pathView(juz) {
     const btn = lock ? '' : el('button', { class: 'pbtn', onclick: start }, `${done ? 'Latih lagi' : forced ? 'Mulai (dev)' : 'Mulai'} +${n.xp} XP`);
     const dev = devOn ? el('div', { class: 'devrow' },
       el('button', { onclick: async () => { await api('dev_mark', { unit: u.i, level: n.level }); reload(); } }, 'Tandai selesai s.d. level ini'),
-      el('button', { onclick: async () => { if (confirm('Hapus semua progres unit ini (termasuk chest)?')) { await api('dev_reset', { unit: u.i }); reload(); } } }, 'Reset unit')) : '';
+      el('button', { onclick: async () => { if (confirm('Hapus semua progres unit ini (termasuk chest & lompat)?')) { await api('dev_reset', { unit: u.i }); reload(); } } }, 'Reset unit')) : '';
+    const desc = n.review ? `Ulasan ${n.reviewName}: soal dari awal hizb sampai Thumn ${u.thumn} ini (kumulatif).` : PHASE[n.phase];
     pop = el('div', { class: 'pop' + (lock ? ' lk' : ''), style: `--ox:${ox}px`, onclick: e => e.stopPropagation() },
-      el('b', {}, `Level ${n.level} dari ${n.levels} · ${n.phase}`),
-      el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : `${done ? 'Selesai · ' : ''}Lesson ${n.lesson} dari ${n.lessons}`),
-      lock ? '' : el('small', {}, [n.cumul ? `Lesson ulasan: soal dari awal hizb sampai Thumn ${u.thumn} ini.` : PHASE[n.phase], n.exam ? ` Ujian akhir ${kind.toLowerCase()}: 15 soal, lulus dengan skor ≥ 80%.` : '']),
+      el('b', {}, n.review ? `Level ${n.level} · ${n.phase}` : `Level ${n.level} dari ${n.levels} · ${n.phase}`),
+      el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : `${n.skipped ? 'Dilewati lewat tes lompat · ' : done ? 'Selesai · ' : ''}Lesson ${n.lesson} dari ${n.lessons}`),
+      lock ? '' : el('small', {}, [desc, n.exam ? ` Ujian akhir ${kind.toLowerCase()}: 15 soal, lulus dengan skor ≥ 80%.` : '']),
       forced ? el('small', {}, '🛠 Mode developer: level ini sebenarnya masih terkunci.') : '',
       lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn, dev);
-    pop._start = lock ? null : start; pop._key = u.i + n.id;
-    row.after(pop); btn?.focus?.({ preventScroll: true }); pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    place(row, u.i + n.id, lock ? null : start, btn);
+  };
+  const popupJump = (row, u) => {   // "Lompat ke sini": tes 25 soal, semua harus benar
+    closePop();
+    const start = () => session(u.i, 0, 0, juz, 'Thumn', { jump: true });
+    const btn = el('button', { class: 'pbtn', onclick: start }, 'Mulai tes +20 XP');
+    pop = el('div', { class: 'pop', style: '--ox:0px', onclick: e => e.stopPropagation() },
+      el('b', {}, 'Lompat ke sini?'), el('span', {}, `Tes 25 soal dari ${u.skip} thumn yang dilewati.`),
+      el('small', {}, 'Semua jawaban harus benar. Satu salah berarti tes gagal (tanpa nyawa).'),
+      el('small', {}, 'Jika berhasil, thumn yang dilewati ditandai selesai (tanpa chest) dan thumn ini terbuka.'), btn);
+    place(row, 'J' + u.i, start, btn);
   };
   const cls = u => u.kind === 'hizb' ? 9 : u.kind === 'juz' ? 10 : (u.thumn - 1) % 8 + 1;   // thumn: pelangi 1-8 | hizb: abu kebiruan | juz: emas
+  const jumpRow = u => {
+    const b = el('button', { class: 'node jumpn open', 'aria-label': 'Lompat ke thumn ini', onclick: ev => { ev.stopPropagation(); pop && pop._key === 'J' + u.i ? closePop() : popupJump(row, u); } },
+      el('span', { class: 'ic' }, '⏩'));
+    b.insertAdjacentHTML('afterbegin', nodeSvg(false, 0));
+    const row = el('div', { class: 'row' }, el('div', { class: 'nw' }, el('div', { class: 'jbub' }, 'LOMPAT KE SINI?'), b));
+    return row;
+  };
   const nodeRow = (u, n, k) => {
     const ox = off[k % 8], locked = n.state === 'locked';
-    const b = el('button', { class: 'node ' + n.state + (locked && devOn ? ' dev' : ''), 'aria-label': `Level ${n.level}`,
+    const b = el('button', { class: 'node ' + n.state + (locked && devOn ? ' dev' : ''), 'aria-label': n.review ? n.phase : `Level ${n.level}`,
       onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
-      el('span', { class: 'ic' }, locked ? (devOn ? '🔓' : '🔒') : n.state === 'done' ? '✓' : n.final ? '🏆' : n.level));
+      el('span', { class: 'ic' }, locked ? (devOn ? '🔓' : '🔒') : n.state === 'done' ? '✓' : n.review ? '🔁' : n.final ? '🏆' : n.level));
     b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 100 * n.done / n.lessons));
     const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
-      el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
+      el('div', { class: 'stars' }, n.skipped ? '⏩' : n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
     return row;
   };
   const chestRow = (u, c, k) => {   // chest: terkunci -> siap dibuka -> terbuka (10-20 dirham)
@@ -121,43 +141,61 @@ async function pathView(juz) {
     return el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${off[k % 8]}px)` }, b,
       el('div', { class: 'stars' }, c.state === 'ready' ? 'Buka!' : c.state === 'opened' ? `+${c.amount} 🪙` : `Level ${c.after}`)));
   };
-  const rowsOf = u => { const r = []; u.nodes.forEach(n => { r.push(['n', n]); const c = (u.chests || []).find(c => c.after === n.level); if (c) r.push(['c', c]); }); return r; };
+  const rowsOf = u => { const r = []; u.nodes.forEach(n => { r.push(['n', n]); const c = (u.chests || []).find(c => c.after === n.level && !n.review); if (c) r.push(['c', c]); }); return r; };
   mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
     d.units.map(u => el('section', { class: 'unit u' + cls(u) },
       el('div', { class: 'uh' }, el('small', {}, u.label), el('b', {}, u.title)),
       u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya.' : 'Tidak ada ayat pada unit ini — periksa data/thumn.json dan file surahnya.') : '',
-      el('div', { class: 'path' }, rowsOf(u).map(([t, x], k) => t === 'n' ? nodeRow(u, x, k) : chestRow(u, x, k)))))));
+      el('div', { class: 'path' }, u.jump ? jumpRow(u) : '', rowsOf(u).map(([t, x], k) => t === 'n' ? nodeRow(u, x, k) : chestRow(u, x, k)))))));
   keys = e => { if (e.key === 'Escape') closePop(); else if (e.key === 'Enter' && pop?._start) { e.preventDefault(); pop._start(); } };
-  document.querySelector('.node.open')?.scrollIntoView({ block: 'center' });
+  document.querySelector('.node.open:not(.jumpn)')?.scrollIntoView({ block: 'center' });
 }
 
-async function session(unit, level, lesson, juz, kind = 'Thumn') {
-  const d = await api('quiz', null, `&unit=${unit}&level=${level}&lesson=${lesson}`);
-  const total = d.questions.length, queue = [...d.questions];
-  let hearts = 5, done = 0, ok = 0;
-  const pb = el('u'), hr = el('span', { class: 'hearts' }), body = el('div'), foot = el('div', { class: 'foot' });
-  const upd = () => { pb.style.width = 100 * done / total + '%'; hr.textContent = '❤ ' + hearts; };
-  mount(el('div', { class: 'wrap sess' },
-    el('div', { class: 'sh' }, el('button', { class: 'ico', onclick: () => confirm('Keluar? Progres sesi ini tidak disimpan.') && pathView(juz) }, '✕'), el('div', { class: 'pb' }, pb), hr),
+async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
+  const jump = !!opts.jump;
+  const d = await api('quiz', null, jump ? `&unit=${unit}&jump=1` : `&unit=${unit}&level=${level}&lesson=${lesson}`);
+  const total = d.questions.length, queue = [...d.questions], t0 = Date.now();
+  let hearts = jump ? 1 : 5, done = 0, ok = 0, run = 0;      // tes lompat: satu salah = gagal
+  const pb = el('u'), pbw = el('div', { class: 'pb' }, pb), hr = el('span', { class: 'hearts' }), runLbl = el('div', { class: 'run' }), body = el('div'), foot = el('div', { class: 'foot' });
+  const upd = () => {
+    pb.style.width = 100 * done / total + '%'; pbw.classList.toggle('hot', run >= 3);
+    hr.textContent = jump ? `🎯 ${done}/${total}` : '❤ ' + hearts; runLbl.textContent = run >= 2 ? `${run} BERTURUT-TURUT` : '';
+  };
+  mount(el('div', { class: 'wrap sess' }, runLbl,
+    el('div', { class: 'sh' }, el('button', { class: 'ico', onclick: () => confirm('Keluar? Progres sesi ini tidak disimpan.') && pathView(juz) }, '✕'), pbw, hr),
     body, foot));
 
+  const slim = q => { const { miss, c, ua, ...rest } = q; return rest; };
+  const fbRow = (q, c) => {   // "terlalu mudah" / "terlalu sulit" / "laporkan" -> tersimpan untuk laporan admin
+    const row = el('div', { class: 'fbx' });
+    const send = (kind, extra = {}) => api('feedback', { unit, level, lesson, kind, qkind: q.kind, correct: c, q: slim(q), ua: q.ua ?? null, ...extra });
+    const mkBtn = (kind, txt) => { const b = el('button', { class: 'fbb', onclick: async () => { b.disabled = true; try { await send(kind); b.textContent = 'Terkirim ✓'; } catch (e) { b.disabled = false; toast(e.message); } } }, txt); return b; };
+    const rep = el('button', { class: 'fbb', onclick: () => {
+      const sel = el('select', {}, ['Soal atau kunci jawaban keliru', 'Teks Arab keliru', 'Soal membingungkan', 'Lainnya'].map(t => el('option', {}, t)));
+      const note = el('input', { placeholder: 'Catatan (opsional)', maxlength: 300 });
+      const go = el('button', { class: 'fbb send', onclick: async () => { go.disabled = true; try { await send('report', { reason: sel.value, note: note.value }); row.replaceChildren(el('span', { class: 'fbok' }, 'Terima kasih, laporan terkirim ✓')); } catch (e) { go.disabled = false; toast(e.message); } } }, 'Kirim');
+      row.replaceChildren(sel, note, go); note.focus();
+    } }, '⚑ Laporkan');
+    row.append(mkBtn('easy', '😴 Terlalu mudah'), mkBtn('hard', '⛰ Terlalu sulit'), rep);
+    return row;
+  };
   const next = () => { upd(); queue.length ? ask(queue[0]) : finish(); };
   const judge = (q, c, label) => {
-    if (c) { done++; if (!q.miss) ok++; queue.shift(); } else { hearts--; q.miss = true; queue.push(queue.shift()); }
+    if (c) { done++; if (!q.miss) { ok++; run++; } else run = 0; queue.shift(); } else { hearts--; q.miss = true; run = 0; queue.push(queue.shift()); }
     upd(); body.querySelectorAll('button').forEach(b => b.disabled = true);
     const go = () => hearts <= 0 ? lose() : next();
     foot.replaceChildren(el('div', { class: 'fb ' + (c ? 'good' : 'bad') }, el('b', {}, label || (c ? 'Benar! ✓' : 'Kurang tepat')),
-      el('div', { class: 'ayat sm', dir: 'rtl' }, q.full),
+      el('div', { class: 'ayat sm', dir: 'rtl' }, q.full), fbRow(q, c),
       el('button', { class: 'btn ' + (c ? '' : 'red'), onclick: go }, 'Lanjut')));
     onEnter(go);
   };
 
   function ask(q) {
-    let check;
-    const btn = el('button', { class: 'btn', onclick: () => judge(q, check()) }, 'Periksa'); btn.disabled = true;
+    let check, ua = () => null;
+    const btn = el('button', { class: 'btn', onclick: () => { q.ua = ua(); judge(q, check()); } }, 'Periksa'); btn.disabled = true;
     const title = el('p', { class: 'qt' }, q.title);
     if (q.t === 'choice') {
-      let sel = null;
+      let sel = null; ua = () => sel;
       const show = q.tokens ? el('div', { class: 'ayat', dir: 'rtl' }, q.tokens.map((w, i) => [el('span', { class: i === q.mark ? 'mk' : '' }, w), ' ']))
         : q.show ? el('div', { class: 'ayat', dir: 'rtl' }, q.show) : '';
       const os = q.opts.map((o, i) => el('button', { class: 'opt ' + q.mode, dir: q.mode === 'ar' ? 'rtl' : null,
@@ -195,9 +233,9 @@ async function session(unit, level, lesson, juz, kind = 'Thumn') {
         const [li, ri] = s === 'R' ? [sel.i, i] : [i, sel.i]; items[sel.s][sel.i].classList.remove('sel'); sel = null;
         if (q.left[li].id === q.right[ri].id) {
           items.L[li].classList.add('ok'); items.R[ri].classList.add('ok');
-          if (--remaining === 0) { locked = true; q.miss = mistakes > 0; judge(q, true, mistakes ? `Selesai · ${mistakes} kesalahan` : 'Sempurna! ✓'); }
+          if (--remaining === 0) { locked = true; q.miss = mistakes > 0; q.ua = { kesalahan: mistakes }; judge(q, true, mistakes ? `Selesai · ${mistakes} kesalahan` : 'Sempurna! ✓'); }
         } else {
-          mistakes++; hearts--; upd();
+          mistakes++; hearts--; run = 0; upd();
           [items.L[li], items.R[ri]].forEach(x => { x.classList.add('bad'); setTimeout(() => x.classList.remove('bad'), 450); });
           if (hearts <= 0) { locked = true; setTimeout(lose, 600); }
         }
@@ -213,6 +251,7 @@ async function session(unit, level, lesson, juz, kind = 'Thumn') {
       };
     } else {
       const sl = q.ans.map(() => null), area = el('div', { class: 'ayat', dir: 'rtl' }), pool = el('div', { class: 'tiles', dir: 'rtl' });
+      ua = () => sl.map(t => q.opts[t]);
       const live = () => btn.isConnected;
       const place = k => { const t = sl.indexOf(null); if (!live() || sl.includes(k) || t < 0) return; sl[t] = k; paint(); };
       // Seret-lepas (mouse & sentuh). Jika tidak bergeser >6px dianggap ketukan biasa.
@@ -263,22 +302,27 @@ async function session(unit, level, lesson, juz, kind = 'Thumn') {
     foot.replaceChildren(btn);
   }
 
-  const retry = () => session(unit, level, lesson, juz, kind);
+  const retry = () => session(unit, level, lesson, juz, kind, opts);
   const lose = () => {
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, '💔'), el('h2', {}, 'Nyawa habis'), el('p', { class: 'mut' }, 'Tenang, ulangi lagi — muroja’ah itu proses.'),
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, jump ? '🎯' : '💔'), el('h2', {}, jump ? 'Tes lompat belum berhasil' : 'Nyawa habis'),
+      el('p', { class: 'mut' }, jump ? `Kamu menjawab ${ok} soal dengan benar sebelum salah. Semua 25 soal harus benar.` : 'Tenang, ulangi lagi — muroja’ah itu proses.'),
       el('button', { class: 'btn', onclick: retry }, 'Coba lagi'), el('p'), el('button', { class: 'btn alt', onclick: () => pathView(juz) }, 'Kembali')));
     onEnter(retry);
   };
   async function finish() {
-    const r = await api('complete', { unit, level, lesson, correct: ok, total });
+    const secs = Math.round((Date.now() - t0) / 1000);
+    const r = jump ? await api('jump_complete', { unit, correct: ok, total }) : await api('complete', { unit, level, lesson, correct: ok, total });
     me.xp = r.xp; me.streak = r.streak;
-    const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars);
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : r.unitDone ? '🏅' : r.levelDone ? '🎊' : '🎉'),
-      el('h2', {}, !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari ${r.lessons} selesai!`),
-      el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : stars),
-      el('div', { class: 'stat' }, el('div', {}, el('small', {}, 'Skor'), el('b', {}, r.pct + '%')),
-        el('div', {}, el('small', {}, r.bonus ? `XP (termasuk bonus ${r.bonus})` : 'XP'), el('b', {}, '+' + r.gain)),
-        el('div', {}, el('small', {}, 'Streak'), el('b', {}, '🔥' + r.streak))),
+    const stars = r.stars != null ? '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : '';
+    const head = jump ? 'Lompat berhasil!' : !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari ${r.lessons} selesai!`;
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : jump ? '🚀' : r.unitDone ? '🏅' : r.levelDone ? '🎊' : '🎉'),
+      el('h2', {}, head),
+      el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : jump ? `${r.skipped} thumn dilewati dan ditandai selesai.` : stars),
+      el('div', { class: 'stat' },
+        el('div', { class: 'sc xp' }, el('small', {}, 'TOTAL XP'), el('b', {}, '⚡ ' + r.gain)),
+        el('div', { class: 'sc time' }, el('small', {}, 'WAKTU'), el('b', {}, '⏱ ' + fmtTime(secs))),
+        el('div', { class: 'sc acc' }, el('small', {}, 'AKURASI'), el('b', {}, '🎯 ' + r.pct + '%'))),
+      el('p', { class: 'mut' }, `${r.bonus ? `Termasuk bonus ${r.bonus} XP · ` : ''}🔥 Streak ${r.streak} hari`),
       el('button', { class: 'btn', onclick: () => pathView(juz) }, 'Lanjut'), el('p'), r.passed ? '' : el('button', { class: 'btn alt', onclick: retry }, 'Ulangi')));
     onEnter(r.passed ? () => pathView(juz) : retry);
   }

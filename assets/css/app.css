@@ -24,7 +24,7 @@ button,input{font:inherit;color:inherit}
 .nw{text-align:center}
 @keyframes pulse{50%{transform:scale(1.07)}}
 .stars{color:var(--y);font-size:14px;letter-spacing:2px;min-height:21px}
-.sess{display:flex;flex-direction:column;min-height:100vh;padding-bottom:190px}
+.sess{display:flex;flex-direction:column;min-height:100vh;padding-bottom:280px}
 .sh{display:flex;align-items:center;gap:12px}.pb{flex:1;height:14px;background:var(--line);border-radius:7px;overflow:hidden}
 .pb u{display:block;height:100%;width:0;background:var(--g);transition:width .3s}.hearts{color:var(--r);font-weight:800}
 .qt{font-size:20px;font-weight:800;margin:24px 0 12px}
@@ -108,3 +108,19 @@ button,input{font:inherit;color:inherit}
 
 .top{gap:6px}.top .chip{white-space:nowrap}
 @media(max-width:480px){.top{padding:8px 10px;gap:4px}.top .chip{padding:3px 7px;font-size:13px}.top .ico{padding:2px 4px}}
+
+/* ---- Beruntun, masukan, kartu hasil, lompat ---- */
+.run{min-height:20px;text-align:center;font-size:12px;font-weight:800;letter-spacing:.5px;color:#ff9600;margin-bottom:2px}
+.pb.hot u{background:#ff9600}
+.fbx{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 6px}
+.fbb{background:none;border:0;color:var(--mut);font-size:12px;font-weight:700;cursor:pointer;padding:4px 2px;text-transform:uppercase;letter-spacing:.3px}
+.fbb:disabled{opacity:.7;cursor:default}.fbb.send{border:2px solid var(--line);border-radius:8px;padding:3px 10px}
+.fbx select,.fbx input{font-size:13px;padding:4px 6px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);max-width:200px}
+.fbok{color:var(--g);font-size:13px;font-weight:700}
+.stat{gap:10px}.stat .sc{padding:0;overflow:hidden;border-width:2px}
+.stat .sc small{display:block;color:#fff;font-weight:800;font-size:11px;letter-spacing:.5px;padding:3px 0}.stat .sc b{padding:12px 4px;font-size:20px}
+.sc.xp{border-color:#ffc800}.sc.xp small{background:#ffc800;color:#3d3000}.sc.xp b{color:#e0a800}
+.sc.time{border-color:#1cb0f6}.sc.time small{background:#1cb0f6}.sc.time b{color:#1cb0f6}
+.sc.acc{border-color:#58cc02}.sc.acc small{background:#58cc02}.sc.acc b{color:#58cc02}
+.node.jumpn{--c:#1cb0f6;--cd:#1790c8;--ct:#fff}
+.jbub{margin:0 auto 6px;width:max-content;padding:6px 12px;border:2px solid var(--line);border-radius:12px;color:#1cb0f6;font-size:12px;font-weight:800;letter-spacing:.5px;background:var(--bg)}

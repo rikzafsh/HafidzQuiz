@@ -6,6 +6,9 @@ session_start();
 
 // ===== MODE DEVELOPER SEMENTARA: ubah ke false (atau hapus) setelah pengetesan selesai =====
 const DEV_MODE = true;
+// Nama pengguna yang boleh membuka admin.php (laporan masukan dari pengguna). Daftar dulu akunnya di aplikasi.
+const ADMIN_USERS = ['admin'];
+function isAdmin($u): bool { return in_array($u['username'] ?? '', ADMIN_USERS, true); }
 
 function db(): PDO {
     static $p;
@@ -16,7 +19,8 @@ function db(): PDO {
         $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $p->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $p->exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, xp INTEGER DEFAULT 0, streak INTEGER DEFAULT 0, last_day TEXT, dirham INTEGER DEFAULT 0);
-                  CREATE TABLE IF NOT EXISTS progress(user_id INTEGER, thumn INTEGER, node TEXT, stars INTEGER, best INTEGER, PRIMARY KEY(user_id, thumn, node));");
+                  CREATE TABLE IF NOT EXISTS progress(user_id INTEGER, thumn INTEGER, node TEXT, stars INTEGER, best INTEGER, PRIMARY KEY(user_id, thumn, node));
+                  CREATE TABLE IF NOT EXISTS feedback(id INTEGER PRIMARY KEY, user_id INTEGER, unit INTEGER, level INTEGER, lesson INTEGER, kind TEXT, reason TEXT, note TEXT, qkind TEXT, qjson TEXT, ua TEXT, correct INTEGER, created_at TEXT, resolved INTEGER DEFAULT 0);");
         $cols = array_column($p->query('PRAGMA table_info(users)')->fetchAll(), 'name');   // migrasi untuk database lama
         if (!in_array('dirham', $cols, true)) $p->exec('ALTER TABLE users ADD COLUMN dirham INTEGER DEFAULT 0');
     }

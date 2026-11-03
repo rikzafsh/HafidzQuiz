@@ -241,7 +241,7 @@ function genQuestions($src, $pool, $n, $lv = 4) {
         $r = []; foreach ($w as $t => $wt) $r[$t] = -log(mt_rand(1, 1000000) / 1000000) / $wt;   // undian berbobot tanpa pengembalian
         asort($r); $types = array_keys($r);
         if ($prev !== null && count($types) > 1 && $types[0] === $prev) $types[] = array_shift($types);   // hindari tipe sama beruntun
-        foreach (array_merge($types, ['lengkapi', 'sambung', 'nomor']) as $ty) if ($q = genQ($ty, $a, $pool, $lv)) { $qs[] = $q; $prev = $ty; break; }
+        foreach (array_merge($types, ['lengkapi', 'sambung', 'nomor']) as $ty) if ($q = genQ($ty, $a, $pool, $lv)) { $q['kind'] = $ty; $qs[] = $q; $prev = $ty; break; }
     }
     return $qs;
 }
