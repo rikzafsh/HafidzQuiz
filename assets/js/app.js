@@ -12,26 +12,75 @@ const api = async (a, body, qs = '') => {
   if (!r.ok || j.error) throw Object.assign(new Error(j.error || 'Terjadi kesalahan'), { status: r.status });
   return j;
 };
-const toast = m => { const t = el('div', { class: 'toast' }, m); document.body.append(t); setTimeout(() => t.remove(), 2200); };
+const toast = m => { const t = el('div', { class: 'toast' }, m); document.body.append(t); setTimeout(() => t.remove(), 2400); };
+
+// ---------- Ikon SVG (flat design, tanpa emoji) ----------
+const HEART = '<path fill="#ff4b4b" d="M12 21.5S3 15.6 3 9.4A5 5 0 0 1 12 6.6 5 5 0 0 1 21 9.4c0 6.2-9 12.1-9 12.1z"/>';
+const STAR = '12,2.5 14.9,8.6 21.5,9.4 16.6,13.9 17.9,20.5 12,17.2 6.1,20.5 7.4,13.9 2.5,9.4 9.1,8.6';
+const ICONS = {
+  flame: `<path fill="#ff9600" d="M12 2.2c1.2 3.8 6.8 6.4 6.8 12.1a6.8 6.8 0 0 1-13.6 0c0-3.1 1.7-4.9 3.2-6.5.3 1.5 1 2.5 2 3C9.9 7.9 10.4 4.8 12 2.2z"/><path fill="#ffc800" d="M12 21.6a4 4 0 0 1-4-4c0-2.1 2.1-3.3 2.8-5.2 1.4 1 5.2 2.7 5.2 5.2a4 4 0 0 1-4 4z"/>`,
+  bolt: `<polygon fill="#ffc800" points="13.5,1.8 4.8,13.2 10.8,13.2 9.6,22.2 19.2,10.2 13,10.2"/>`,
+  coin: `<circle cx="12" cy="12" r="10" fill="#ffc800"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#e39b00" stroke-width="2"/><rect x="11" y="8" width="2" height="8" rx="1" fill="#e39b00"/>`,
+  heart: HEART,
+  heartBroken: HEART + `<path d="M12 6.6l-2.2 4.2 3 2.2-2.4 5.2" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`,
+  lock: `<path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="#8b99a1" stroke-width="2.6" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="11.5" rx="3" fill="#8b99a1"/><circle cx="12" cy="14.6" r="1.8" fill="#fff"/><rect x="11.2" y="15.2" width="1.6" height="3.4" rx=".8" fill="#fff"/>`,
+  unlock: `<path d="M8 10.5V8a4 4 0 0 1 7.6-1.7" fill="none" stroke="#8b99a1" stroke-width="2.6" stroke-linecap="round"/><rect x="4.5" y="10" width="15" height="11.5" rx="3" fill="#8b99a1"/><circle cx="12" cy="14.6" r="1.8" fill="#fff"/><rect x="11.2" y="15.2" width="1.6" height="3.4" rx=".8" fill="#fff"/>`,
+  check: `<path d="M5 12.8l4.6 4.6L19 7.6" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`,
+  trophy: `<path d="M7 3.5h10V10a5 5 0 0 1-10 0z" fill="#ffc800"/><path d="M7 5.5H3.8V8a3.6 3.6 0 0 0 3.6 3.6M17 5.5h3.2V8a3.6 3.6 0 0 1-3.6 3.6" fill="none" stroke="#ffc800" stroke-width="2"/><rect x="10.8" y="14.5" width="2.4" height="3.6" fill="#e39b00"/><rect x="7.5" y="18" width="9" height="3" rx="1.2" fill="#e39b00"/>`,
+  repeat: `<path d="M20 12a8 8 0 1 1-2.6-5.9" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><polygon points="21,2.8 21,9.6 14.2,9.6" fill="currentColor"/>`,
+  ff: `<polygon fill="currentColor" points="3,5 12,12 3,19"/><polygon fill="currentColor" points="12,5 21,12 12,19"/>`,
+  star: `<polygon fill="#ffc800" points="${STAR}"/>`,
+  starO: `<polygon fill="currentColor" opacity=".22" points="${STAR}"/>`,
+  book: `<path d="M3 5h7a2 2 0 0 1 2 2v13a2 2 0 0 0-2-2H3z" fill="#1cb0f6"/><path d="M21 5h-7a2 2 0 0 0-2 2v13a2 2 0 0 1 2-2h7z" fill="#1790c8"/>`,
+  logout: `<g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="M15 8l4 4-4 4M19 12H9"/></g>`,
+  cog: `<g stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></g><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2.6"/>`,
+  chart: `<rect x="4" y="12" width="4" height="8" rx="1" fill="#1cb0f6"/><rect x="10" y="6" width="4" height="14" rx="1" fill="#58cc02"/><rect x="16" y="9" width="4" height="11" rx="1" fill="#ff9600"/>`,
+  arrowLeft: `<path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`,
+  close: `<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>`,
+  target: `<circle cx="12" cy="12" r="10" fill="#ff4b4b"/><circle cx="12" cy="12" r="6.8" fill="#fff"/><circle cx="12" cy="12" r="3.6" fill="#ff4b4b"/>`,
+  timer: `<rect x="9.5" y="1.8" width="5" height="2.6" rx="1" fill="#1cb0f6"/><circle cx="12" cy="13.2" r="8.4" fill="#1cb0f6"/><circle cx="12" cy="13.2" r="5.6" fill="#fff"/><path d="M12 13.2V9.6M12 13.2l2.6 1.6" stroke="#1cb0f6" stroke-width="1.8" stroke-linecap="round" fill="none"/>`,
+  home: `<path d="M3 11.5L12 3l9 8.5" fill="none" stroke="#ff9600" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.5V20a1 1 0 0 0 1 1h4v-6h3v6h4a1 1 0 0 0 1-1v-9.5L12 4.2z" fill="#ffc800"/>`,
+  user: `<circle cx="12" cy="8" r="4.4" fill="#a560e8"/><path d="M3.5 21.5a8.5 8.5 0 0 1 17 0z" fill="#a560e8"/>`,
+  party: `<path d="M3.5 21l5-13.5 8.5 8.5z" fill="#ffc800"/><path d="M3.5 21l3-8 5 5z" fill="#ff9600"/><circle cx="15" cy="5" r="1.6" fill="#ff4b4b"/><circle cx="20" cy="9" r="1.4" fill="#1cb0f6"/><rect x="11" y="3" width="3" height="3" rx=".6" fill="#58cc02" transform="rotate(20 12 4)"/><rect x="17.5" y="14.5" width="3" height="3" rx=".6" fill="#a560e8" transform="rotate(25 19 16)"/><path d="M12.5 9.5c2-2.5 4-2 5-3.5" stroke="#ff4b4b" fill="none" stroke-width="1.6" stroke-linecap="round"/>`,
+  medal: `<path d="M7 2.5h4l2 6-3.5 1.5z" fill="#1cb0f6"/><path d="M17 2.5h-4l-2 6 3.5 1.5z" fill="#ff4b4b"/><circle cx="12" cy="15" r="6.6" fill="#ffc800"/><circle cx="12" cy="15" r="4.4" fill="#e39b00"/><polygon fill="#ffc800" points="12,11.8 13.1,13.9 15.4,14.2 13.7,15.8 14.1,18.1 12,17 9.9,18.1 10.3,15.8 8.6,14.2 10.9,13.9"/>`,
+  sad: `<circle cx="12" cy="12" r="10" fill="#ffc800"/><circle cx="8.6" cy="10" r="1.5" fill="#6b4a00"/><circle cx="15.4" cy="10" r="1.5" fill="#6b4a00"/><path d="M8 17c1-1.8 2.4-2.6 4-2.6s3 .8 4 2.6" stroke="#6b4a00" stroke-width="1.8" fill="none" stroke-linecap="round"/>`,
+  rocket: `<path d="M12 2c3.6 2.2 5.2 6 4.4 10.6L14.6 15h-5.2l-1.8-2.4C6.8 8 8.4 4.2 12 2z" fill="#1cb0f6"/><circle cx="12" cy="9" r="2.2" fill="#fff"/><path d="M7.6 12.6L4 15.5v3.2l4.4-1.6zM16.4 12.6l3.6 2.9v3.2l-4.4-1.6z" fill="#ff4b4b"/><path d="M10 16.2h4L12 22z" fill="#ff9600"/>`,
+  zzz: `<g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6l-6 7h6"/><path d="M13 12h5l-5 6h5"/></g>`,
+  mountain: `<path d="M1.5 20.5L9 7l4.4 7.4 2.6-3.6 6.5 9.7z" fill="currentColor"/>`,
+  flag: `<path d="M6 21V3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.5 4.5h11.5l-2.6 4.2 2.6 4.2H6.5z" fill="#ff4b4b"/>`,
+  shield: `<path d="M32 4l24 8v22c0 16-11 28-24 34C19 62 8 50 8 34V12z" fill="#ffc800"/><path d="M32 10l18 6v18c0 12-8 22-18 27-10-5-18-15-18-27V16z" fill="#e39b00" opacity=".4"/>`,
+  avatar: `<circle cx="60" cy="52" r="30" fill="#2f8fc7"/><path d="M0 120c0-34 26-50 60-50s60 16 60 50z" fill="#2f8fc7"/><rect x="55" y="38" width="10" height="28" rx="3" fill="#cfeaff" opacity=".9"/><rect x="46" y="47" width="28" height="10" rx="3" fill="#cfeaff" opacity=".9"/>`,
+};
+const ic = (n, s = 20, cls = '') => {
+  const e = document.createElement('span'); e.className = 'i ' + cls; e.style.cssText = `width:${s}px;height:${s}px`;
+  e.innerHTML = `<svg viewBox="${n === 'shield' ? '0 0 64 72' : n === 'avatar' ? '0 0 120 120' : '0 0 24 24'}" aria-hidden="true">${ICONS[n] || ''}</svg>`; return e;
+};
+const stars = (n, s = 14) => el('span', { class: 'stk' }, [0, 1, 2].map(i => ic(i < n ? 'star' : 'starO', s)));
+
+// ---------- Keyboard, layar, navigasi ----------
 let keys = null; // penangan keyboard milik layar yang sedang tampil
 const onEnter = fn => { keys = e => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) fn(); } }; };
-addEventListener('keydown', e => { if (keys && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.matches('input,textarea')) keys(e); });
+addEventListener('keydown', e => { if (keys && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.matches('input,textarea,select')) keys(e); });
 const mount = (...n) => { keys = null; app.replaceChildren(...n); scrollTo(0, 0); };
 let me = null;
 addEventListener('unhandledrejection', e => e.reason?.status === 401 ? authView() : toast(e.reason?.message || 'Terjadi kesalahan'));
-
 const logout = async () => { await api('logout', {}); me = null; authView(); };
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 let devOn = store.get('hq_dev') === '1', redraw = null;   // devOn: mode developer sementara (hanya efektif bila server DEV_MODE = true)
-const bar = back => el('header', { class: 'top' },
-  back ? el('button', { class: 'ico', onclick: back, 'aria-label': 'Kembali' }, '←') : el('b', { class: 'brand' }, 'HafidzQuiz'),
+
+// Menu utama: Belajar (utama) dan Profil. PC: sidebar berlabel | tablet: sidebar ikon | HP: tab bawah.
+const NAV = [['learn', 'Belajar', 'home', () => juzView()], ['profile', 'Profil', 'user', () => profileView()]];
+const nav = active => el('nav', { class: 'side', 'aria-label': 'Menu utama' }, el('b', { class: 'brand' }, 'HafidzQuiz'),
+  NAV.map(([id, label, icon, go]) => el('button', { class: 'nv' + (id === active ? ' on' : ''), 'aria-label': label, 'aria-current': id === active ? 'page' : null, onclick: go }, ic(icon, 30), el('span', { class: 'lb' }, label))));
+const shell = (active, ...kids) => mount(el('div', { class: 'shell' }, nav(active), el('main', { class: 'main' }, ...kids)));
+const topbar = back => el('header', { class: 'top' },
+  back ? el('button', { class: 'ico', onclick: back, 'aria-label': 'Kembali' }, ic('arrowLeft', 22)) : el('b', { class: 'brand mob' }, 'HafidzQuiz'),
   el('span', { class: 'sp' }),
   me.dev ? el('button', { class: 'chip dev' + (devOn ? ' on' : ''), title: 'Mode developer sementara: buka level terkunci untuk pengetesan',
-    onclick: () => { devOn = !devOn; store.set('hq_dev', devOn ? '1' : '0'); redraw?.(); } }, devOn ? '🛠 ON' : '🛠') : '',
-  el('span', { class: 'chip' }, '🔥 ' + me.streak), el('span', { class: 'chip' }, '⭐ ' + me.xp), el('span', { class: 'chip', title: 'Dirham' }, '🪙 ' + me.dirham),
-  me.admin ? el('a', { class: 'chip', href: 'admin.php', title: 'Laporan masukan (admin)' }, '📊') : '',
-  el('a', { class: 'chip', href: 'index.php', title: 'Muroja’ah bebas' }, '📖'),
-  el('button', { class: 'ico', onclick: logout, title: 'Keluar' }, '⎋'));
+    onclick: () => { devOn = !devOn; store.set('hq_dev', devOn ? '1' : '0'); redraw?.(); } }, ic('cog', 16), devOn ? 'DEV ON' : 'DEV') : '',
+  el('span', { class: 'chip', title: 'Streak harian' }, ic('flame', 18), me.streak),
+  el('span', { class: 'chip', title: 'Total XP' }, ic('bolt', 18), me.xp),
+  el('span', { class: 'chip', title: 'Dirham' }, ic('coin', 18), me.dirham));
 
 function authView(mode = 'login') {
   const u = el('input', { placeholder: 'Nama pengguna', autocomplete: 'username', maxlength: 30 });
@@ -49,12 +98,43 @@ function authView(mode = 'login') {
 async function juzView() {
   redraw = () => juzView();
   const d = await api('juz'); me = d.user;
-  mount(bar(), el('div', { class: 'wrap' }, el('h2', {}, 'Pilih Juz'), el('p', { class: 'mut' }, 'Boleh mulai dari juz mana saja.'),
+  shell('learn', topbar(), el('div', { class: 'wrap' }, el('h2', {}, 'Belajar'), el('p', { class: 'mut' }, 'Pilih juz. Boleh mulai dari juz mana saja.'),
     el('div', { class: 'grid' }, d.juz.map(j => el('button', { class: 'juz', onclick: () => pathView(j.juz) },
       el('b', {}, 'Juz ' + j.juz), el('small', {}, `${j.done}/${j.total} thumn`), el('i', {}, el('u', { style: `width:${100 * j.done / j.total}%` })))))));
 }
 
-// ---- Tombol oktagon dengan cincin ----
+// ---------- Profil ----------
+const ACH = [
+  { icon: 'flame', title: 'Api Semangat', steps: [3, 7, 14, 30, 100, 365], text: n => `Mencapai streak ${n} hari`, val: s => s.streak },
+  { icon: 'bolt', title: 'Penuntut Ilmu', steps: [100, 500, 1000, 5000, 10000, 30000], text: n => `Mengumpulkan ${n} XP`, val: s => s.xp },
+  { icon: 'book', title: 'Penghafal', steps: [1, 4, 8, 16, 48, 160, 480], text: n => `Menyelesaikan ${n} thumn`, val: s => s.thumnDone },
+  { icon: 'coin', title: 'Pengumpul Dirham', steps: [20, 100, 300, 1000], text: n => `Mengumpulkan ${n} dirham`, val: s => s.dirham },
+];
+async function profileView() {
+  redraw = () => profileView();
+  const d = await api('profile'); me = d.user; const s = { ...d.stats, streak: me.streak, xp: me.xp, dirham: me.dirham };
+  const joined = d.joined ? new Date(d.joined.replace(' ', 'T')).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : null;
+  const card = (icon, val, lbl, cls = '') => el('div', { class: 'sc2 ' + cls }, ic(icon, 34), el('div', {}, el('b', {}, val), el('small', {}, lbl)));
+  const badge = (a) => {
+    const v = a.val(s), lv = a.steps.filter(n => v >= n).length, next = a.steps[lv], pct = next ? Math.min(100, 100 * v / next) : 100;
+    return el('div', { class: 'ach' }, el('div', { class: 'bdg' }, ic('shield', 64), el('span', { class: 'bi' }, ic(a.icon, 26)), el('small', {}, lv ? 'LEVEL ' + lv : 'BELUM')),
+      el('div', { class: 'at' }, el('b', {}, a.title), el('span', {}, a.text(next ?? a.steps.at(-1))),
+        el('div', { class: 'ap' }, el('u', { style: `width:${pct}%` }), el('i', {}, next ? `${v}/${next}` : 'Level tertinggi'))));
+  };
+  shell('profile', topbar(), el('div', { class: 'wrap' },
+    el('div', { class: 'pbanner' }, ic('avatar', 150)),
+    el('h2', { class: 'pname' }, me.name), el('p', { class: 'mut' }, joined ? 'Bergabung ' + joined : 'Pengguna HafidzQuiz'),
+    el('h3', {}, 'Statistik'),
+    el('div', { class: 'stats' }, card('flame', me.streak, 'Streak (hari)', 'gold'), card('bolt', me.xp, 'Total XP'), card('coin', me.dirham, 'Dirham'),
+      card('check', `${s.thumnDone}/${s.thumnTotal}`, 'Thumn selesai' + (s.thumnSkipped ? ` (${s.thumnSkipped} dilewati)` : ''))),
+    el('h3', {}, 'Pencapaian'), el('div', { class: 'achs' }, ACH.map(badge)),
+    el('div', { class: 'pact' },
+      el('a', { class: 'btn alt', href: 'index.php' }, ic('book', 22), 'Muroja’ah bebas'),
+      me.admin ? el('a', { class: 'btn alt', href: 'admin.php' }, ic('chart', 22), 'Laporan masukan (admin)') : '',
+      el('button', { class: 'btn alt', onclick: logout }, ic('logout', 22), 'Keluar'))));
+}
+
+// ---------- Peta belajar ----------
 const oct = (cx, cy, r) => {
   const v = [...Array(8)].map((_, k) => { const a = (-67.5 + 45 * k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
   return [[cx, cy - r * Math.cos(Math.PI / 8)], ...v].map(p => p.map(x => x.toFixed(1)).join(',')).join(' ');
@@ -70,7 +150,6 @@ const PHASE = {
   Menengah: 'Ditambah menebak ayat sebelumnya, nomor ayat, dan harakat.',
   Mahir: 'Ditambah mencocokkan ayat, i’rab, kata yang mirip, dan kata terakhir ayat.',
 };
-
 const KIND = { thumn: 'Thumn', hizb: 'Hizb', juz: 'Juz' };
 const fmtTime = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 const chestSvg = open => `<svg viewBox="0 0 72 64" aria-hidden="true"><rect x="8" y="30" width="56" height="28" rx="6" fill="#9a5b1c"/><rect x="8" y="30" width="56" height="8" fill="#7d4812"/>` +
@@ -98,7 +177,7 @@ async function pathView(juz) {
       el('b', {}, n.review ? `Level ${n.level} · ${n.phase}` : `Level ${n.level} dari ${n.levels} · ${n.phase}`),
       el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : `${n.skipped ? 'Dilewati lewat tes lompat · ' : done ? 'Selesai · ' : ''}Lesson ${n.lesson} dari ${n.lessons}`),
       lock ? '' : el('small', {}, [desc, n.exam ? ` Ujian akhir ${kind.toLowerCase()}: 15 soal, lulus dengan skor ≥ 80%.` : '']),
-      forced ? el('small', {}, '🛠 Mode developer: level ini sebenarnya masih terkunci.') : '',
+      forced ? el('small', { class: 'dv' }, ic('cog', 14), 'Mode developer: level ini sebenarnya masih terkunci.') : '',
       lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn, dev);
     place(row, u.i + n.id, lock ? null : start, btn);
   };
@@ -115,7 +194,7 @@ async function pathView(juz) {
   const cls = u => u.kind === 'hizb' ? 9 : u.kind === 'juz' ? 10 : (u.thumn - 1) % 8 + 1;   // thumn: pelangi 1-8 | hizb: abu kebiruan | juz: emas
   const jumpRow = u => {
     const b = el('button', { class: 'node jumpn open', 'aria-label': 'Lompat ke thumn ini', onclick: ev => { ev.stopPropagation(); pop && pop._key === 'J' + u.i ? closePop() : popupJump(row, u); } },
-      el('span', { class: 'ic' }, '⏩'));
+      el('span', { class: 'ic' }, ic('ff', 34)));
     b.insertAdjacentHTML('afterbegin', nodeSvg(false, 0));
     const row = el('div', { class: 'row' }, el('div', { class: 'nw' }, el('div', { class: 'jbub' }, 'LOMPAT KE SINI?'), b));
     return row;
@@ -124,10 +203,10 @@ async function pathView(juz) {
     const ox = off[k % 8], locked = n.state === 'locked';
     const b = el('button', { class: 'node ' + n.state + (locked && devOn ? ' dev' : ''), 'aria-label': n.review ? n.phase : `Level ${n.level}`,
       onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
-      el('span', { class: 'ic' }, locked ? (devOn ? '🔓' : '🔒') : n.state === 'done' ? '✓' : n.review ? '🔁' : n.final ? '🏆' : n.level));
+      el('span', { class: 'ic' }, locked ? ic(devOn ? 'unlock' : 'lock', 32) : n.state === 'done' ? ic('check', 34) : n.review ? ic('repeat', 32) : n.final ? ic('trophy', 34) : String(n.level)));
     b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 100 * n.done / n.lessons));
     const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
-      el('div', { class: 'stars' }, n.skipped ? '⏩' : n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
+      el('div', { class: 'stars' }, n.skipped ? ic('ff', 16) : n.state === 'done' ? stars(n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
     return row;
   };
   const chestRow = (u, c, k) => {   // chest: terkunci -> siap dibuka -> terbuka (10-20 dirham)
@@ -135,14 +214,14 @@ async function pathView(juz) {
       ev.stopPropagation(); closePop();
       if (c.state === 'locked') return toast(`Selesaikan Level ${c.after} untuk membuka chest ini`);
       if (c.state === 'opened') return toast(`Chest sudah dibuka: +${c.amount} dirham`);
-      const r = await api('claim', { unit: u.i, chest: c.after }); toast(`🎉 Chest terbuka! +${r.amount} dirham`); reload();
+      const r = await api('claim', { unit: u.i, chest: c.after }); toast(`Chest terbuka! +${r.amount} dirham`); reload();
     } });
     b.insertAdjacentHTML('afterbegin', chestSvg(c.state === 'opened'));
     return el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${off[k % 8]}px)` }, b,
-      el('div', { class: 'stars' }, c.state === 'ready' ? 'Buka!' : c.state === 'opened' ? `+${c.amount} 🪙` : `Level ${c.after}`)));
+      el('div', { class: 'stars' }, c.state === 'ready' ? 'Buka!' : c.state === 'opened' ? ['+' + c.amount, ic('coin', 14)] : `Level ${c.after}`)));
   };
   const rowsOf = u => { const r = []; u.nodes.forEach(n => { r.push(['n', n]); const c = (u.chests || []).find(c => c.after === n.level && !n.review); if (c) r.push(['c', c]); }); return r; };
-  mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
+  shell('learn', topbar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
     d.units.map(u => el('section', { class: 'unit u' + cls(u) },
       el('div', { class: 'uh' }, el('small', {}, u.label), el('b', {}, u.title)),
       u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya.' : 'Tidak ada ayat pada unit ini — periksa data/thumn.json dan file surahnya.') : '',
@@ -151,48 +230,52 @@ async function pathView(juz) {
   document.querySelector('.node.open:not(.jumpn)')?.scrollIntoView({ block: 'center' });
 }
 
+// ---------- Sesi kuis: soal diterima TANPA kunci; jawaban diperiksa, dan skor/nyawa/waktu dihitung, oleh server ----------
 async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
   const jump = !!opts.jump;
   const d = await api('quiz', null, jump ? `&unit=${unit}&jump=1` : `&unit=${unit}&level=${level}&lesson=${lesson}`);
-  const total = d.questions.length, queue = [...d.questions], t0 = Date.now();
-  let hearts = jump ? 1 : 5, done = 0, ok = 0, run = 0;      // tes lompat: satu salah = gagal
+  const attempt = d.attempt, total = d.total, queue = [...d.questions];
+  let hearts = d.hearts, done = 0, run = 0, busy = false;      // tes lompat: satu salah = gagal
   const pb = el('u'), pbw = el('div', { class: 'pb' }, pb), hr = el('span', { class: 'hearts' }), runLbl = el('div', { class: 'run' }), body = el('div'), foot = el('div', { class: 'foot' });
   const upd = () => {
     pb.style.width = 100 * done / total + '%'; pbw.classList.toggle('hot', run >= 3);
-    hr.textContent = jump ? `🎯 ${done}/${total}` : '❤ ' + hearts; runLbl.textContent = run >= 2 ? `${run} BERTURUT-TURUT` : '';
+    hr.replaceChildren(jump ? ic('target', 22) : ic(hearts > 0 ? 'heart' : 'heartBroken', 24), jump ? `${done}/${total}` : String(hearts)); runLbl.textContent = run >= 2 ? `${run} BERTURUT-TURUT` : '';
   };
   mount(el('div', { class: 'wrap sess' }, runLbl,
-    el('div', { class: 'sh' }, el('button', { class: 'ico', onclick: () => confirm('Keluar? Progres sesi ini tidak disimpan.') && pathView(juz) }, '✕'), pbw, hr),
+    el('div', { class: 'sh' }, el('button', { class: 'ico', 'aria-label': 'Keluar', onclick: () => confirm('Keluar? Progres sesi ini tidak disimpan.') && pathView(juz) }, ic('close', 24)), pbw, hr),
     body, foot));
 
-  const slim = q => { const { miss, c, ua, ...rest } = q; return rest; };
-  const fbRow = (q, c) => {   // "terlalu mudah" / "terlalu sulit" / "laporkan" -> tersimpan untuk laporan admin
+  const fbRow = (q, c) => {   // "terlalu mudah" / "terlalu sulit" / "laporkan" -> tersimpan untuk laporan admin (soal & jawaban diambil server dari sesi ini)
     const row = el('div', { class: 'fbx' });
-    const send = (kind, extra = {}) => api('feedback', { unit, level, lesson, kind, qkind: q.kind, correct: c, q: slim(q), ua: q.ua ?? null, ...extra });
-    const mkBtn = (kind, txt) => { const b = el('button', { class: 'fbb', onclick: async () => { b.disabled = true; try { await send(kind); b.textContent = 'Terkirim ✓'; } catch (e) { b.disabled = false; toast(e.message); } } }, txt); return b; };
+    const send = (k, extra = {}) => api('feedback', { attempt, qi: q.i, kind: k, ...extra });
+    const mkBtn = (k, icon, txt) => { const b = el('button', { class: 'fbb', onclick: async () => { b.disabled = true; try { await send(k); b.replaceChildren(ic('check', 14), 'Terkirim'); } catch (e) { b.disabled = false; toast(e.message); } } }, ic(icon, 16), txt); return b; };
     const rep = el('button', { class: 'fbb', onclick: () => {
       const sel = el('select', {}, ['Soal atau kunci jawaban keliru', 'Teks Arab keliru', 'Soal membingungkan', 'Lainnya'].map(t => el('option', {}, t)));
       const note = el('input', { placeholder: 'Catatan (opsional)', maxlength: 300 });
-      const go = el('button', { class: 'fbb send', onclick: async () => { go.disabled = true; try { await send('report', { reason: sel.value, note: note.value }); row.replaceChildren(el('span', { class: 'fbok' }, 'Terima kasih, laporan terkirim ✓')); } catch (e) { go.disabled = false; toast(e.message); } } }, 'Kirim');
+      const go = el('button', { class: 'fbb send', onclick: async () => { go.disabled = true; try { await send('report', { reason: sel.value, note: note.value }); row.replaceChildren(el('span', { class: 'fbok' }, ic('check', 14), 'Terima kasih, laporan terkirim')); } catch (e) { go.disabled = false; toast(e.message); } } }, 'Kirim');
       row.replaceChildren(sel, note, go); note.focus();
-    } }, '⚑ Laporkan');
-    row.append(mkBtn('easy', '😴 Terlalu mudah'), mkBtn('hard', '⛰ Terlalu sulit'), rep);
+    } }, ic('flag', 16), 'Laporkan');
+    row.append(mkBtn('easy', 'zzz', 'Terlalu mudah'), mkBtn('hard', 'mountain', 'Terlalu sulit'), rep);
     return row;
   };
   const next = () => { upd(); queue.length ? ask(queue[0]) : finish(); };
-  const judge = (q, c, label) => {
-    if (c) { done++; if (!q.miss) { ok++; run++; } else run = 0; queue.shift(); } else { hearts--; q.miss = true; run = 0; queue.push(queue.shift()); }
+  const judge = (q, res, label) => {   // res = hasil pemeriksaan dari server
+    q.full = res.full ?? q.full; hearts = res.hearts; const c = res.ok;
+    if (c) { done++; if (!q.miss) run++; else run = 0; queue.shift(); } else { q.miss = true; run = 0; queue.push(queue.shift()); }
     upd(); body.querySelectorAll('button').forEach(b => b.disabled = true);
     const go = () => hearts <= 0 ? lose() : next();
-    foot.replaceChildren(el('div', { class: 'fb ' + (c ? 'good' : 'bad') }, el('b', {}, label || (c ? 'Benar! ✓' : 'Kurang tepat')),
+    foot.replaceChildren(el('div', { class: 'fb ' + (c ? 'good' : 'bad') }, el('b', {}, label || (c ? 'Benar!' : 'Kurang tepat')),
       el('div', { class: 'ayat sm', dir: 'rtl' }, q.full), fbRow(q, c),
       el('button', { class: 'btn ' + (c ? '' : 'red'), onclick: go }, 'Lanjut')));
     onEnter(go);
   };
 
   function ask(q) {
-    let check, ua = () => null;
-    const btn = el('button', { class: 'btn', onclick: () => { q.ua = ua(); judge(q, check()); } }, 'Periksa'); btn.disabled = true;
+    let ua = () => null;
+    const btn = el('button', { class: 'btn', onclick: async () => {
+      if (busy) return; busy = true; btn.disabled = true;
+      try { judge(q, await api('check', { attempt, qi: q.i, answer: ua() })); } catch (e) { btn.disabled = false; toast(e.message); } finally { busy = false; }
+    } }, 'Periksa'); btn.disabled = true;
     const title = el('p', { class: 'qt' }, q.title);
     if (q.t === 'choice') {
       let sel = null; ua = () => sel;
@@ -203,7 +286,6 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
         el('span', { class: 'kn' }, i + 1), q.mode === 'har' ? '◌' + o : o));
       body.replaceChildren(title, show, el('div', { class: 'opts ' + q.mode }, os),
         el('p', { class: 'hint' }, `Tekan 1–${os.length} atau tombol panah untuk memilih · Enter untuk memeriksa`));
-      check = () => sel === q.ans;
       const cols = q.mode === 'ar' ? 1 : 2;
       keys = e => {
         const k = e.key;
@@ -217,9 +299,9 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
         }
       };
     } else if (q.t === 'match') {
-      // Kolom KIRI = akhir ayat / nomor ayat (tombol 1-5), kolom KANAN = awal ayat (tombol Q W E R T). Satu grid -> tinggi tiap baris sama.
+      // Kolom KIRI = akhir ayat / nomor ayat (tombol 1-5), kolom KANAN = awal ayat (tombol Q W E R T). Tiap pasangan diperiksa server.
       const rtl = q.rmode === 'ar';
-      let sel = null, remaining = q.left.length, mistakes = 0, locked = false;
+      let sel = null, remaining = q.left.length, locked = false;
       const items = { L: [], R: [] };   // L = awal ayat (q.left), R = akhir/nomor (q.right)
       const mk = (s, list) => list.map((it, i) => {
         const ar = s === 'L' || rtl;
@@ -227,17 +309,18 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
           el('span', { class: 'kn' }, s === 'R' ? i + 1 : 'QWERT'[i]), it.text);
         items[s].push(b); return b;
       });
-      const pick = (s, i) => {
+      const pick = async (s, i) => {
         const b = items[s][i]; if (locked || b.classList.contains('ok')) return;
         if (!sel || sel.s === s) { sel && items[sel.s][sel.i].classList.remove('sel'); sel = { s, i }; b.classList.add('sel'); return; }
-        const [li, ri] = s === 'R' ? [sel.i, i] : [i, sel.i]; items[sel.s][sel.i].classList.remove('sel'); sel = null;
-        if (q.left[li].id === q.right[ri].id) {
-          items.L[li].classList.add('ok'); items.R[ri].classList.add('ok');
-          if (--remaining === 0) { locked = true; q.miss = mistakes > 0; q.ua = { kesalahan: mistakes }; judge(q, true, mistakes ? `Selesai · ${mistakes} kesalahan` : 'Sempurna! ✓'); }
+        const [li, ri] = s === 'R' ? [sel.i, i] : [i, sel.i]; items[sel.s][sel.i].classList.remove('sel'); sel = null; locked = true;
+        let r; try { r = await api('check', { attempt, qi: q.i, l: li, r: ri }); } catch (e) { locked = false; return toast(e.message); }
+        if (r.ok) {
+          items.L[li].classList.add('ok'); items.R[ri].classList.add('ok'); locked = false;
+          if (r.done) { locked = true; q.miss = r.mistakes > 0; judge(q, r, r.mistakes ? `Selesai · ${r.mistakes} kesalahan` : 'Sempurna!'); }
         } else {
-          mistakes++; hearts--; run = 0; upd();
+          hearts = r.hearts; run = 0; upd();
           [items.L[li], items.R[ri]].forEach(x => { x.classList.add('bad'); setTimeout(() => x.classList.remove('bad'), 450); });
-          if (hearts <= 0) { locked = true; setTimeout(lose, 600); }
+          if (hearts <= 0) setTimeout(lose, 600); else locked = false;
         }
       };
       const A = mk('R', q.right), B = mk('L', q.left);                       // A = kiri, B = kanan
@@ -250,7 +333,7 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
         else if (li >= 0 && li < items.L.length) { e.preventDefault(); pick('L', li); }
       };
     } else {
-      const sl = q.ans.map(() => null), area = el('div', { class: 'ayat', dir: 'rtl' }), pool = el('div', { class: 'tiles', dir: 'rtl' });
+      const sl = q.blanks.map(() => null), area = el('div', { class: 'ayat', dir: 'rtl' }), pool = el('div', { class: 'tiles', dir: 'rtl' });
       ua = () => sl.map(t => q.opts[t]);
       const live = () => btn.isConnected;
       const place = k => { const t = sl.indexOf(null); if (!live() || sl.includes(k) || t < 0) return; sl[t] = k; paint(); };
@@ -287,7 +370,6 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
       body.replaceChildren(title, area, pool,
         el('p', { class: 'hint' }, 'Seret kata ke kotak, atau tekan angka untuk mengisi · Backspace menghapus · Enter memeriksa'));
       paint();
-      check = () => sl.every((t, i) => q.opts[t] === q.ans[i]);
       keys = e => {
         const k = e.key;
         if (k === 'Enter') { e.preventDefault(); if (!e.repeat && !btn.disabled) btn.click(); }
@@ -304,25 +386,23 @@ async function session(unit, level, lesson, juz, kind = 'Thumn', opts = {}) {
 
   const retry = () => session(unit, level, lesson, juz, kind, opts);
   const lose = () => {
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, jump ? '🎯' : '💔'), el('h2', {}, jump ? 'Tes lompat belum berhasil' : 'Nyawa habis'),
-      el('p', { class: 'mut' }, jump ? `Kamu menjawab ${ok} soal dengan benar sebelum salah. Semua 25 soal harus benar.` : 'Tenang, ulangi lagi — muroja’ah itu proses.'),
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, ic(jump ? 'target' : 'heartBroken', 84)), el('h2', {}, jump ? 'Tes lompat belum berhasil' : 'Nyawa habis'),
+      el('p', { class: 'mut' }, jump ? 'Semua 25 soal harus dijawab benar. Satu kesalahan menggagalkan tes.' : 'Tenang, ulangi lagi — muroja’ah itu proses.'),
       el('button', { class: 'btn', onclick: retry }, 'Coba lagi'), el('p'), el('button', { class: 'btn alt', onclick: () => pathView(juz) }, 'Kembali')));
     onEnter(retry);
   };
   async function finish() {
-    const secs = Math.round((Date.now() - t0) / 1000);
-    const r = jump ? await api('jump_complete', { unit, correct: ok, total }) : await api('complete', { unit, level, lesson, correct: ok, total });
+    let r; try { r = await api('finish', { attempt }); } catch (e) { toast(e.message); return pathView(juz); }   // skor, XP, dan waktu semuanya dari server
     me.xp = r.xp; me.streak = r.streak;
-    const stars = r.stars != null ? '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars) : '';
     const head = jump ? 'Lompat berhasil!' : !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari ${r.lessons} selesai!`;
-    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : jump ? '🚀' : r.unitDone ? '🏅' : r.levelDone ? '🎊' : '🎉'),
+    mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, ic(!r.passed ? 'sad' : jump ? 'rocket' : r.unitDone ? 'trophy' : r.levelDone ? 'medal' : 'party', 84)),
       el('h2', {}, head),
-      el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : jump ? `${r.skipped} thumn dilewati dan ditandai selesai.` : stars),
+      el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : jump ? `${r.skipped} thumn dilewati dan ditandai selesai.` : stars(r.stars, 20)),
       el('div', { class: 'stat' },
-        el('div', { class: 'sc xp' }, el('small', {}, 'TOTAL XP'), el('b', {}, '⚡ ' + r.gain)),
-        el('div', { class: 'sc time' }, el('small', {}, 'WAKTU'), el('b', {}, '⏱ ' + fmtTime(secs))),
-        el('div', { class: 'sc acc' }, el('small', {}, 'AKURASI'), el('b', {}, '🎯 ' + r.pct + '%'))),
-      el('p', { class: 'mut' }, `${r.bonus ? `Termasuk bonus ${r.bonus} XP · ` : ''}🔥 Streak ${r.streak} hari`),
+        el('div', { class: 'sc xp' }, el('small', {}, 'TOTAL XP'), el('b', {}, ic('bolt', 22), r.gain)),
+        el('div', { class: 'sc time' }, el('small', {}, 'WAKTU'), el('b', {}, ic('timer', 22), fmtTime(r.secs))),
+        el('div', { class: 'sc acc' }, el('small', {}, 'AKURASI'), el('b', {}, ic('target', 22), r.pct + '%'))),
+      el('p', { class: 'mut inl' }, r.bonus ? `Termasuk bonus ${r.bonus} XP · ` : '', ic('flame', 18), `Streak ${r.streak} hari`),
       el('button', { class: 'btn', onclick: () => pathView(juz) }, 'Lanjut'), el('p'), r.passed ? '' : el('button', { class: 'btn alt', onclick: retry }, 'Ulangi')));
     onEnter(r.passed ? () => pathView(juz) : retry);
   }

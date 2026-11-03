@@ -80,13 +80,65 @@ function jumpQuestions($pool): array {   // 25 soal, bertahap dari menengah ke m
     return array_slice($qs, 0, 25);
 }
 
+// ===== Penilaian di SERVER =====
+// Soal disimpan di tabel attempts (lengkap dengan kunci jawaban). Browser hanya menerima soal tanpa kunci, mengirim jawaban satu per satu
+// ke 'check', lalu 'finish'. Skor, nyawa, dan waktu dihitung server; browser tidak bisa lagi melaporkan skornya sendiri.
+function publicQuestion(array $q, int $i): array {
+    unset($q['ans'], $q['full']);
+    if ($q['t'] === 'match') {   // id pasangan = kunci jawaban -> dibuang
+        $q['left'] = array_map(fn($x) => ['text' => $x['text']], $q['left']);
+        $q['right'] = array_map(fn($x) => ['text' => $x['text']], $q['right']);
+    }
+    return ['i' => $i] + $q;
+}
+function newAttempt($uid, $kind, $un, $lv, $les, array $Q): array {
+    $id = bin2hex(random_bytes(12)); $hearts = $kind === 'jump' ? 1 : 5;
+    $S = array_map(fn($q) => ['tries' => 0, 'done' => false, 'miss' => false, 'last' => null, 'ua' => null, 'matched' => []], $Q);
+    $pdo = db(); $pdo->prepare('DELETE FROM attempts WHERE started < ?')->execute([time() - 86400]);
+    $pdo->prepare('INSERT INTO attempts(id,user_id,kind,unit,level,lesson,qjson,sjson,hearts,started) VALUES(?,?,?,?,?,?,?,?,?,?)')
+        ->execute([$id, $uid, $kind, $un, $lv, $les, json_encode($Q, JSON_UNESCAPED_UNICODE), json_encode($S, JSON_UNESCAPED_UNICODE), $hearts, time()]);
+    return ['attempt' => $id, 'hearts' => $hearts, 'total' => count($Q), 'questions' => array_map('publicQuestion', $Q, array_keys($Q))];
+}
+function loadAttempt($uid, array $in): array {
+    $s = db()->prepare('SELECT * FROM attempts WHERE id=? AND user_id=?'); $s->execute([(string)($in['attempt'] ?? ''), $uid]);
+    return $s->fetch() ?: fail('Sesi kuis tidak ditemukan atau sudah kedaluwarsa.', 404);
+}
+function touchStreak($u): int {
+    $today = date('Y-m-d'); $streak = (int)$u['streak'];
+    if ($u['last_day'] !== $today) $streak = $u['last_day'] === date('Y-m-d', strtotime('-1 day')) ? $streak + 1 : 1;
+    return $streak;
+}
+function applyLesson($u, $un, $lv, $les, $c, $tot): array {   // $c = jumlah soal benar pada percobaan pertama (dihitung server)
+    $m = unitMeta($un); $key = "V$lv.$les"; $exam = $lv <= $m['levels'] && $lv === $m['exam'] && $les === 4;
+    $pct = (int)round(100 * $c / $tot); $passed = $exam ? $pct >= 80 : true;
+    $stars = $pct >= 100 ? 3 : ($pct >= 85 ? 2 : 1);
+    $q = db()->prepare('SELECT 1 FROM progress WHERE user_id=? AND thumn=? AND node=?'); $q->execute([$u['id'], $un, $key]); $first = !$q->fetch();
+    $base = $exam ? ($first ? 20 : 10) : ($first ? 10 : 5); $bonus = $c === $tot ? ($exam ? 10 : 5) : 0;
+    $gain = $passed ? $base + $bonus : 0;
+    if ($passed) db()->prepare('INSERT INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,?,?) ON CONFLICT(user_id,thumn,node) DO UPDATE SET stars=MAX(stars,excluded.stars), best=MAX(best,excluded.best)')->execute([$u['id'], $un, $key, $stars, $pct]);
+    $levelDone = false;
+    if ($passed) { $pr = progress($u['id']); $levelDone = true; for ($j = 1; $j <= 4; $j++) if (!isset($pr["$un:V$lv.$j"])) $levelDone = false; }
+    $streak = touchStreak($u);
+    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $u['id']]);
+    return ['passed' => $passed, 'pct' => $pct, 'stars' => $passed ? $stars : 0, 'gain' => $gain, 'bonus' => $passed ? $bonus : 0, 'xp' => (int)$u['xp'] + $gain,
+            'streak' => $streak, 'level' => $lv, 'lesson' => $les, 'lessons' => 4, 'levelDone' => $levelDone, 'unitDone' => $passed && $exam];
+}
+function applyJump($u, $un, $c, $tot): array {   // tes lompat: 25 soal, semuanya benar pada percobaan pertama. Thumn yang dilewati ditandai JUMP (tanpa chest).
+    $skip = skippedThumns(progress($u['id']), $un); if (!$skip) fail('Tidak ada thumn yang perlu dilewati.');
+    $passed = $tot === 25 && $c === 25; $gain = $passed ? 20 : 0;
+    if ($passed) { $s = db()->prepare('INSERT OR IGNORE INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,1,100)'); foreach ($skip as $k) $s->execute([$u['id'], $k, 'JUMP']); }
+    $streak = touchStreak($u);
+    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $u['id']]);
+    return ['passed' => $passed, 'pct' => $passed ? 100 : 0, 'gain' => $gain, 'bonus' => 0, 'xp' => (int)$u['xp'] + $gain, 'streak' => $streak, 'skipped' => count($skip)];
+}
+
 try { switch ($a) {
 case 'register':
     $n = trim($in['username'] ?? ''); $p = $in['password'] ?? '';
     if (!preg_match('/^[A-Za-z0-9_.-]{3,30}$/', $n)) fail('Nama pengguna 3–30 karakter (huruf, angka, _ . -).');
     if (strlen($p) < 6) fail('Kata sandi minimal 6 karakter.');
-    $s = db()->prepare('INSERT INTO users(username, hash) VALUES(?,?)');
-    try { $s->execute([$n, password_hash($p, PASSWORD_DEFAULT)]); } catch (PDOException $e) { fail('Nama pengguna sudah dipakai.'); }
+    $s = db()->prepare('INSERT INTO users(username, hash, created_at) VALUES(?,?,?)');
+    try { $s->execute([$n, password_hash($p, PASSWORD_DEFAULT), date('Y-m-d H:i:s')]); } catch (PDOException $e) { fail('Nama pengguna sudah dipakai.'); }
     session_regenerate_id(true); $_SESSION['uid'] = (int)db()->lastInsertId();
     out(['user' => pub(me())]);
 case 'login':
@@ -134,7 +186,7 @@ case 'quiz':
         $pool = []; foreach (skippedThumns(progress($u['id']), $un) as $k) $pool = array_merge($pool, thumnAyat($k));
         if (!$pool) fail('Tidak ada thumn yang perlu dilewati.', 404);
         $qs = jumpQuestions($pool); if (count($qs) < 25) fail('Soal belum bisa dibuat.', 500);
-        out(['questions' => $qs]);
+        out(newAttempt($u['id'], 'jump', $un, 0, 0, $qs));
     }
     $lv = (int)($_GET['level'] ?? 0); $les = (int)($_GET['lesson'] ?? 1); $ayat = unitAyat($un); $m = unitMeta($un);
     if (!$ayat || $lv < 1 || $lv > maxLevel($m) || $les < 1 || $les > 4) fail('Lesson tidak ditemukan.', 404);
@@ -143,45 +195,55 @@ case 'quiz':
     $n = ($exam || ($rev && $les === 4)) ? 15 : levelCount(count($src), lessonDiff($m, $lv, $les));
     $qs = genQuestions($src, $src, $n, lessonDiff($m, $lv, $les));
     if (count($qs) < 3) fail('Soal belum bisa dibuat untuk bagian ini.', 500);
-    out(['questions' => $qs]);
+    out(newAttempt($u['id'], 'lesson', $un, $lv, $les, $qs));
 
-case 'complete':
-    $u = need(); $un = (int)($in['unit'] ?? -1); $lv = (int)($in['level'] ?? 0); $les = (int)($in['lesson'] ?? 1); $m = unitMeta($un);
-    if (!unitAyat($un) || $lv < 1 || $lv > maxLevel($m) || $les < 1 || $les > 4) fail('Data tidak valid.');
-    $key = "V$lv.$les"; $exam = $lv <= $m['levels'] && $lv === $m['exam'] && $les === 4;
-    $c = max(0, (int)($in['correct'] ?? 0)); $tot = max(1, (int)($in['total'] ?? 1)); $c = min($c, $tot);
-    $pct = (int)round(100 * $c / $tot); $passed = $exam ? $pct >= 80 : true;
-    $stars = $pct >= 100 ? 3 : ($pct >= 85 ? 2 : 1);
-    $q = db()->prepare('SELECT 1 FROM progress WHERE user_id=? AND thumn=? AND node=?'); $q->execute([$u['id'], $un, $key]); $first = !$q->fetch();
-    $base = $exam ? ($first ? 20 : 10) : ($first ? 10 : 5); $bonus = $c === $tot ? ($exam ? 10 : 5) : 0;
-    $gain = $passed ? $base + $bonus : 0;
-    if ($passed) db()->prepare('INSERT INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,?,?) ON CONFLICT(user_id,thumn,node) DO UPDATE SET stars=MAX(stars,excluded.stars), best=MAX(best,excluded.best)')->execute([$u['id'], $un, $key, $stars, $pct]);
-    $levelDone = false;
-    if ($passed) { $pr = progress($u['id']); $levelDone = true; for ($j = 1; $j <= 4; $j++) if (!isset($pr["$un:V$lv.$j"])) $levelDone = false; }
-    $today = date('Y-m-d'); $streak = (int)$u['streak'];
-    if ($u['last_day'] !== $today) $streak = $u['last_day'] === date('Y-m-d', strtotime('-1 day')) ? $streak + 1 : 1;
-    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, $today, $u['id']]);
-    out(['passed' => $passed, 'pct' => $pct, 'stars' => $passed ? $stars : 0, 'gain' => $gain, 'bonus' => $passed ? $bonus : 0, 'xp' => (int)$u['xp'] + $gain,
-         'streak' => $streak, 'level' => $lv, 'lesson' => $les, 'lessons' => 4, 'levelDone' => $levelDone, 'unitDone' => $passed && $exam]);
+case 'check':   // periksa satu jawaban (atau satu pasangan pada soal pencocokan) di server
+    $u = need(); $at = loadAttempt($u['id'], $in); if ($at['finished']) fail('Sesi sudah selesai.', 409);
+    $Q = json_decode($at['qjson'], true); $S = json_decode($at['sjson'], true); $qi = (int)($in['qi'] ?? -1);
+    if (!isset($Q[$qi])) fail('Soal tidak valid.'); $hearts = (int)$at['hearts']; if ($hearts <= 0) fail('Nyawa habis.', 409);
+    $q = $Q[$qi]; $s = &$S[$qi]; $ok = false;
+    if ($s['done']) $ok = true;                                                  // sudah benar: tidak mengubah apa pun
+    elseif ($q['t'] === 'match') {
+        $l = (int)($in['l'] ?? -1); $r = (int)($in['r'] ?? -1);
+        if (!isset($q['left'][$l], $q['right'][$r]) || in_array($l, $s['matched'], true)) fail('Pasangan tidak valid.');
+        $ok = $q['left'][$l]['id'] === $q['right'][$r]['id'];
+        if ($ok) { $s['matched'][] = $l; if (count($s['matched']) === count($q['left'])) $s['done'] = true; }
+        else { $s['tries']++; $s['miss'] = true; $hearts--; }
+        $s['ua'] = ['kesalahan' => $s['tries']]; $s['last'] = $s['tries'] === 0;
+    } else {
+        $ans = $in['answer'] ?? null; $ok = $q['t'] === 'fill' ? ($ans === $q['ans']) : ((string)$ans === $q['ans']);
+        $s['tries']++; $s['ua'] = $ans; $s['last'] = $ok;
+        if ($ok) $s['done'] = true; else { $s['miss'] = true; $hearts--; }
+    }
+    $done = $s['done']; $tries = $s['tries']; unset($s);
+    db()->prepare('UPDATE attempts SET sjson=?, hearts=? WHERE id=?')->execute([json_encode($S, JSON_UNESCAPED_UNICODE), $hearts, $at['id']]);
+    out(['ok' => $ok, 'done' => $done, 'hearts' => $hearts, 'mistakes' => $tries, 'full' => ($done || $q['t'] !== 'match') ? $q['full'] : null]);
 
-case 'jump_complete':   // tes lompat: 25 soal, semuanya harus benar. Thumn yang dilewati ditandai selesai (JUMP) tanpa membuka chest.
-    $u = need(); $un = (int)($in['unit'] ?? -1);
-    if ($un < 0 || $un >= 480 || !thumnAyat($un)) fail('Thumn tidak valid.');
-    $skip = skippedThumns(progress($u['id']), $un); if (!$skip) fail('Tidak ada thumn yang perlu dilewati.');
-    $passed = (int)($in['total'] ?? 0) === 25 && (int)($in['correct'] ?? 0) === 25; $gain = $passed ? 20 : 0;
-    if ($passed) { $s = db()->prepare('INSERT OR IGNORE INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,1,100)'); foreach ($skip as $k) $s->execute([$u['id'], $k, 'JUMP']); }
-    $today = date('Y-m-d'); $streak = (int)$u['streak'];
-    if ($u['last_day'] !== $today) $streak = $u['last_day'] === date('Y-m-d', strtotime('-1 day')) ? $streak + 1 : 1;
-    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, $today, $u['id']]);
-    out(['passed' => $passed, 'pct' => $passed ? 100 : 0, 'gain' => $gain, 'bonus' => 0, 'xp' => (int)$u['xp'] + $gain, 'streak' => $streak, 'skipped' => count($skip)]);
+case 'finish':   // skor dihitung dari catatan server, bukan dari laporan browser
+    $u = need(); $at = loadAttempt($u['id'], $in); if ($at['finished']) fail('Sesi sudah selesai.', 409);
+    $Q = json_decode($at['qjson'], true); $S = json_decode($at['sjson'], true);
+    if ((int)$at['hearts'] <= 0) fail('Nyawa habis.', 409);
+    foreach ($S as $s) if (!$s['done']) fail('Masih ada soal yang belum diselesaikan.', 409);
+    $upd = db()->prepare('UPDATE attempts SET finished=1 WHERE id=? AND finished=0'); $upd->execute([$at['id']]); if ($upd->rowCount() === 0) fail('Sesi sudah selesai.', 409);
+    $tot = count($Q); $c = count(array_filter($S, fn($s) => !$s['miss'])); $secs = max(1, time() - (int)$at['started']);
+    $res = $at['kind'] === 'jump' ? applyJump($u, (int)$at['unit'], $c, $tot) : applyLesson($u, (int)$at['unit'], (int)$at['level'], (int)$at['lesson'], $c, $tot);
+    out($res + ['secs' => $secs]);
 
-case 'feedback':   // "terlalu mudah" / "terlalu sulit" / "laporkan" -> disimpan untuk laporan admin (admin.php)
+case 'profile':
+    $u = need(); $pr = progress($u['id']); $done = $skipped = $lessons = 0;
+    foreach (thumns() as $i => $t) { if (isset($pr["$i:V8.4"])) $done++; elseif (isset($pr["$i:JUMP"])) $skipped++; }
+    foreach ($pr as $k => $_) if (preg_match('/:V\d+\.\d+$/', $k)) $lessons++;
+    $s = db()->prepare('SELECT created_at FROM users WHERE id=?'); $s->execute([$u['id']]);
+    out(['user' => pub($u), 'joined' => $s->fetchColumn() ?: null, 'stats' => ['thumnDone' => $done + $skipped, 'thumnSkipped' => $skipped, 'thumnTotal' => count(thumns()), 'lessons' => $lessons]]);
+
+case 'feedback':   // "terlalu mudah" / "terlalu sulit" / "laporkan": soal & jawaban diambil dari catatan server (bukan dari browser)
     $u = need(); $kind = $in['kind'] ?? '';
     if (!in_array($kind, ['easy', 'hard', 'report'], true)) fail('Jenis masukan tidak valid.');
-    $qj = json_encode($in['q'] ?? null, JSON_UNESCAPED_UNICODE); if (strlen($qj) > 20000) fail('Data soal terlalu besar.');
+    $at = loadAttempt($u['id'], $in); $Q = json_decode($at['qjson'], true); $S = json_decode($at['sjson'], true); $qi = (int)($in['qi'] ?? -1);
+    if (!isset($Q[$qi]) || (!$S[$qi]['done'] && !$S[$qi]['tries'])) fail('Jawab soal ini dulu sebelum memberi masukan.');
     db()->prepare('INSERT INTO feedback(user_id,unit,level,lesson,kind,reason,note,qkind,qjson,ua,correct,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
-        $u['id'], (int)($in['unit'] ?? 0), (int)($in['level'] ?? 0), (int)($in['lesson'] ?? 0), $kind, mb_substr((string)($in['reason'] ?? ''), 0, 80), mb_substr((string)($in['note'] ?? ''), 0, 500),
-        mb_substr((string)($in['qkind'] ?? ''), 0, 30), $qj, mb_substr(json_encode($in['ua'] ?? null, JSON_UNESCAPED_UNICODE), 0, 2000), !empty($in['correct']) ? 1 : 0, date('Y-m-d H:i:s')]);
+        $u['id'], (int)$at['unit'], (int)$at['level'], (int)$at['lesson'], $kind, mb_substr((string)($in['reason'] ?? ''), 0, 80), mb_substr((string)($in['note'] ?? ''), 0, 500),
+        mb_substr((string)($Q[$qi]['kind'] ?? ''), 0, 30), json_encode($Q[$qi], JSON_UNESCAPED_UNICODE), mb_substr(json_encode($S[$qi]['ua'], JSON_UNESCAPED_UNICODE), 0, 2000), !empty($S[$qi]['last']) ? 1 : 0, date('Y-m-d H:i:s')]);
     out(['ok' => true]);
 
 case 'claim':   // buka chest (unit thumn, setelah level 4 / 7): 10-20 dirham acak, sekali per chest

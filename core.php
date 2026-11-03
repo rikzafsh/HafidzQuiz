@@ -18,11 +18,13 @@ function db(): PDO {
         $p = new PDO('sqlite:' . $dir . '/hafidz.sqlite');
         $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $p->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $p->exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, xp INTEGER DEFAULT 0, streak INTEGER DEFAULT 0, last_day TEXT, dirham INTEGER DEFAULT 0);
+        $p->exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, xp INTEGER DEFAULT 0, streak INTEGER DEFAULT 0, last_day TEXT, dirham INTEGER DEFAULT 0, created_at TEXT);
                   CREATE TABLE IF NOT EXISTS progress(user_id INTEGER, thumn INTEGER, node TEXT, stars INTEGER, best INTEGER, PRIMARY KEY(user_id, thumn, node));
+                  CREATE TABLE IF NOT EXISTS attempts(id TEXT PRIMARY KEY, user_id INTEGER, kind TEXT, unit INTEGER, level INTEGER, lesson INTEGER, qjson TEXT, sjson TEXT, hearts INTEGER, started INTEGER, finished INTEGER DEFAULT 0);
                   CREATE TABLE IF NOT EXISTS feedback(id INTEGER PRIMARY KEY, user_id INTEGER, unit INTEGER, level INTEGER, lesson INTEGER, kind TEXT, reason TEXT, note TEXT, qkind TEXT, qjson TEXT, ua TEXT, correct INTEGER, created_at TEXT, resolved INTEGER DEFAULT 0);");
         $cols = array_column($p->query('PRAGMA table_info(users)')->fetchAll(), 'name');   // migrasi untuk database lama
         if (!in_array('dirham', $cols, true)) $p->exec('ALTER TABLE users ADD COLUMN dirham INTEGER DEFAULT 0');
+        if (!in_array('created_at', $cols, true)) $p->exec('ALTER TABLE users ADD COLUMN created_at TEXT');
     }
     return $p;
 }
