@@ -230,7 +230,7 @@ function genQ($type, $a, $pool, $lv = 4) {
     return null;
 }
 
-function levelCount($nAyat, $lv) { return $lv >= 8 ? 15 : min(12, 8 + intdiv($nAyat, 10)); }   // thumn panjang -> soal sedikit lebih banyak
+function levelCount($nAyat, $lv) { return min(12, 8 + intdiv($nAyat, 10)); }   // ujian akhir unit (15 soal) ditentukan di api.php   // thumn panjang -> soal sedikit lebih banyak
 
 function genQuestions($src, $pool, $n, $lv = 4) {
     $w = LEVEL_TYPES[max(1, min(8, (int)$lv))];

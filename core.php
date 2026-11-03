@@ -4,6 +4,9 @@ date_default_timezone_set('Asia/Jakarta');
 session_set_cookie_params(['httponly' => true, 'samesite' => 'Lax']);
 session_start();
 
+// ===== MODE DEVELOPER SEMENTARA: ubah ke false (atau hapus) setelah pengetesan selesai =====
+const DEV_MODE = true;
+
 function db(): PDO {
     static $p;
     if (!$p) {
@@ -12,8 +15,10 @@ function db(): PDO {
         $p = new PDO('sqlite:' . $dir . '/hafidz.sqlite');
         $p->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $p->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-        $p->exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, xp INTEGER DEFAULT 0, streak INTEGER DEFAULT 0, last_day TEXT);
+        $p->exec("CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE NOT NULL, hash TEXT NOT NULL, xp INTEGER DEFAULT 0, streak INTEGER DEFAULT 0, last_day TEXT, dirham INTEGER DEFAULT 0);
                   CREATE TABLE IF NOT EXISTS progress(user_id INTEGER, thumn INTEGER, node TEXT, stars INTEGER, best INTEGER, PRIMARY KEY(user_id, thumn, node));");
+        $cols = array_column($p->query('PRAGMA table_info(users)')->fetchAll(), 'name');   // migrasi untuk database lama
+        if (!in_array('dirham', $cols, true)) $p->exec('ALTER TABLE users ADD COLUMN dirham INTEGER DEFAULT 0');
     }
     return $p;
 }

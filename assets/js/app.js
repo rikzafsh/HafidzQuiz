@@ -21,9 +21,14 @@ let me = null;
 addEventListener('unhandledrejection', e => e.reason?.status === 401 ? authView() : toast(e.reason?.message || 'Terjadi kesalahan'));
 
 const logout = async () => { await api('logout', {}); me = null; authView(); };
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+let devOn = store.get('hq_dev') === '1', redraw = null;   // devOn: mode developer sementara (hanya efektif bila server DEV_MODE = true)
 const bar = back => el('header', { class: 'top' },
   back ? el('button', { class: 'ico', onclick: back, 'aria-label': 'Kembali' }, '←') : el('b', { class: 'brand' }, 'HafidzQuiz'),
-  el('span', { class: 'sp' }), el('span', { class: 'chip' }, '🔥 ' + me.streak), el('span', { class: 'chip' }, '⭐ ' + me.xp),
+  el('span', { class: 'sp' }),
+  me.dev ? el('button', { class: 'chip dev' + (devOn ? ' on' : ''), title: 'Mode developer sementara: buka level terkunci untuk pengetesan',
+    onclick: () => { devOn = !devOn; store.set('hq_dev', devOn ? '1' : '0'); redraw?.(); } }, devOn ? '🛠 ON' : '🛠') : '',
+  el('span', { class: 'chip' }, '🔥 ' + me.streak), el('span', { class: 'chip' }, '⭐ ' + me.xp), el('span', { class: 'chip', title: 'Dirham' }, '🪙 ' + me.dirham),
   el('a', { class: 'chip', href: 'index.php', title: 'Muroja’ah bebas' }, '📖'),
   el('button', { class: 'ico', onclick: logout, title: 'Keluar' }, '⎋'));
 
@@ -41,6 +46,7 @@ function authView(mode = 'login') {
 }
 
 async function juzView() {
+  redraw = () => juzView();
   const d = await api('juz'); me = d.user;
   mount(bar(), el('div', { class: 'wrap' }, el('h2', {}, 'Pilih Juz'), el('p', { class: 'mut' }, 'Boleh mulai dari juz mana saja.'),
     el('div', { class: 'grid' }, d.juz.map(j => el('button', { class: 'juz', onclick: () => pathView(j.juz) },
@@ -65,39 +71,62 @@ const PHASE = {
 };
 
 const KIND = { thumn: 'Thumn', hizb: 'Hizb', juz: 'Juz' };
+const chestSvg = open => `<svg viewBox="0 0 72 64" aria-hidden="true"><rect x="8" y="30" width="56" height="28" rx="6" fill="#9a5b1c"/><rect x="8" y="30" width="56" height="8" fill="#7d4812"/>` +
+  (open ? `<g transform="rotate(-30 8 30)"><path d="M8 30V22a14 14 0 0 1 14-14h28a14 14 0 0 1 14 14v8z" fill="#c27a26"/></g><circle cx="26" cy="27" r="5.5" fill="#ffd23f"/><circle cx="38" cy="23" r="5.5" fill="#ffc400"/><circle cx="49" cy="28" r="5.5" fill="#ffd23f"/>`
+    : `<path d="M8 30V22a14 14 0 0 1 14-14h28a14 14 0 0 1 14 14v8z" fill="#c27a26"/><rect x="31" y="24" width="10" height="16" rx="3" fill="#ffd23f"/><circle cx="36" cy="32" r="2.4" fill="#7d4812"/>`) + `</svg>`;
+
 async function pathView(juz) {
+  redraw = () => pathView(juz);
   const d = await api('units', null, '&juz=' + juz); me = d.user;
   const off = [0, 38, 58, 38, 0, -38, -58, -38];
   let pop = null;
   const closePop = () => { pop?.remove(); pop = null; };
+  const reload = async () => { const y = scrollY; await pathView(juz); scrollTo(0, y); };
   const popup = (row, u, n, ox) => {
     closePop();
-    const lock = n.state === 'locked', done = n.state === 'done', kind = KIND[u.kind];
+    const forced = n.state === 'locked' && devOn, lock = n.state === 'locked' && !devOn, done = n.state === 'done', kind = KIND[u.kind];
     const start = () => session(u.i, n.level, n.lesson, juz, kind);
-    const btn = lock ? '' : el('button', { class: 'pbtn', onclick: start }, `${done ? 'Latih lagi' : 'Mulai'} +${n.xp} XP`);
+    const btn = lock ? '' : el('button', { class: 'pbtn', onclick: start }, `${done ? 'Latih lagi' : forced ? 'Mulai (dev)' : 'Mulai'} +${n.xp} XP`);
+    const dev = devOn ? el('div', { class: 'devrow' },
+      el('button', { onclick: async () => { await api('dev_mark', { unit: u.i, level: n.level }); reload(); } }, 'Tandai selesai s.d. level ini'),
+      el('button', { onclick: async () => { if (confirm('Hapus semua progres unit ini (termasuk chest)?')) { await api('dev_reset', { unit: u.i }); reload(); } } }, 'Reset unit')) : '';
     pop = el('div', { class: 'pop' + (lock ? ' lk' : ''), style: `--ox:${ox}px`, onclick: e => e.stopPropagation() },
-      el('b', {}, `Level ${n.level} dari 8 · ${n.phase}`),
+      el('b', {}, `Level ${n.level} dari ${n.levels} · ${n.phase}`),
       el('span', {}, lock ? 'Selesaikan level sebelumnya dulu.' : `${done ? 'Selesai · ' : ''}Lesson ${n.lesson} dari ${n.lessons}`),
-      lock ? '' : el('small', {}, n.exam ? `Ujian akhir ${kind.toLowerCase()} · 15 soal · lulus dengan skor ≥ 80%.` : PHASE[n.phase]),
-      lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn);
+      lock ? '' : el('small', {}, [n.cumul ? `Lesson ulasan: soal dari awal hizb sampai Thumn ${u.thumn} ini.` : PHASE[n.phase], n.exam ? ` Ujian akhir ${kind.toLowerCase()}: 15 soal, lulus dengan skor ≥ 80%.` : '']),
+      forced ? el('small', {}, '🛠 Mode developer: level ini sebenarnya masih terkunci.') : '',
+      lock ? '' : el('small', {}, `Bonus +${n.bonus} XP jika semua benar di percobaan pertama`), btn, dev);
     pop._start = lock ? null : start; pop._key = u.i + n.id;
     row.after(pop); btn?.focus?.({ preventScroll: true }); pop.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   };
   const cls = u => u.kind === 'hizb' ? 9 : u.kind === 'juz' ? 10 : (u.thumn - 1) % 8 + 1;   // thumn: pelangi 1-8 | hizb: abu kebiruan | juz: emas
+  const nodeRow = (u, n, k) => {
+    const ox = off[k % 8], locked = n.state === 'locked';
+    const b = el('button', { class: 'node ' + n.state + (locked && devOn ? ' dev' : ''), 'aria-label': `Level ${n.level}`,
+      onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
+      el('span', { class: 'ic' }, locked ? (devOn ? '🔓' : '🔒') : n.state === 'done' ? '✓' : n.final ? '🏆' : n.level));
+    b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 100 * n.done / n.lessons));
+    const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
+      el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
+    return row;
+  };
+  const chestRow = (u, c, k) => {   // chest: terkunci -> siap dibuka -> terbuka (10-20 dirham)
+    const b = el('button', { class: 'chest ' + c.state, 'aria-label': `Chest setelah level ${c.after}`, onclick: async ev => {
+      ev.stopPropagation(); closePop();
+      if (c.state === 'locked') return toast(`Selesaikan Level ${c.after} untuk membuka chest ini`);
+      if (c.state === 'opened') return toast(`Chest sudah dibuka: +${c.amount} dirham`);
+      const r = await api('claim', { unit: u.i, chest: c.after }); toast(`🎉 Chest terbuka! +${r.amount} dirham`); reload();
+    } });
+    b.insertAdjacentHTML('afterbegin', chestSvg(c.state === 'opened'));
+    return el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${off[k % 8]}px)` }, b,
+      el('div', { class: 'stars' }, c.state === 'ready' ? 'Buka!' : c.state === 'opened' ? `+${c.amount} 🪙` : `Level ${c.after}`)));
+  };
+  const rowsOf = u => { const r = []; u.nodes.forEach(n => { r.push(['n', n]); const c = (u.chests || []).find(c => c.after === n.level); if (c) r.push(['c', c]); }); return r; };
   mount(bar(juzView), el('div', { class: 'wrap', onclick: closePop }, el('h2', {}, 'Juz ' + juz),
     d.units.map(u => el('section', { class: 'unit u' + cls(u) },
       el('div', { class: 'uh' }, el('small', {}, u.label), el('b', {}, u.title)),
       u.empty ? el('p', { class: 'err' }, u.bad ? 'Titik awal thumn ini tidak konsisten di data/thumn.json (kemungkinan salah ketik), jadi ayatnya digabung ke thumn sebelumnya.' : 'Tidak ada ayat pada unit ini — periksa data/thumn.json dan file surahnya.') : '',
-      el('div', { class: 'path' }, u.nodes.map((n, k) => {
-        const ox = off[k % 8], locked = n.state === 'locked';
-        const b = el('button', { class: 'node ' + n.state, 'aria-label': `Level ${n.level}`,
-          onclick: ev => { ev.stopPropagation(); pop && pop._key === u.i + n.id ? closePop() : popup(row, u, n, ox); } },
-          el('span', { class: 'ic' }, locked ? '🔒' : n.state === 'done' ? '✓' : n.final ? '🏆' : n.level));
-        b.insertAdjacentHTML('afterbegin', nodeSvg(locked, n.state === 'done' ? 100 : 100 * n.done / n.lessons));
-        const row = el('div', { class: 'row' }, el('div', { class: 'nw', style: `transform:translateX(${ox}px)` }, b,
-          el('div', { class: 'stars' }, n.state === 'done' ? '★'.repeat(n.stars) + '☆'.repeat(3 - n.stars) : n.state === 'open' ? `${n.done}/${n.lessons}` : '')));
-        return row;
-      }))))));
+      el('div', { class: 'path' }, rowsOf(u).map(([t, x], k) => t === 'n' ? nodeRow(u, x, k) : chestRow(u, x, k)))))));
   keys = e => { if (e.key === 'Escape') closePop(); else if (e.key === 'Enter' && pop?._start) { e.preventDefault(); pop._start(); } };
   document.querySelector('.node.open')?.scrollIntoView({ block: 'center' });
 }
@@ -245,7 +274,7 @@ async function session(unit, level, lesson, juz, kind = 'Thumn') {
     me.xp = r.xp; me.streak = r.streak;
     const stars = '★'.repeat(r.stars) + '☆'.repeat(3 - r.stars);
     mount(el('div', { class: 'wrap big' }, el('div', { class: 'em' }, !r.passed ? '😕' : r.unitDone ? '🏅' : r.levelDone ? '🎊' : '🎉'),
-      el('h2', {}, !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari 4 selesai!`),
+      el('h2', {}, !r.passed ? 'Belum lulus' : r.unitDone ? `${kind} selesai!` : r.levelDone ? `Level ${r.level} selesai!` : `Lesson ${r.lesson} dari ${r.lessons} selesai!`),
       el('p', { class: 'mut' }, !r.passed ? 'Ujian akhir butuh skor minimal 80%.' : stars),
       el('div', { class: 'stat' }, el('div', {}, el('small', {}, 'Skor'), el('b', {}, r.pct + '%')),
         el('div', {}, el('small', {}, r.bonus ? `XP (termasuk bonus ${r.bonus})` : 'XP'), el('b', {}, '+' + r.gain)),

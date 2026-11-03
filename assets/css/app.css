@@ -91,3 +91,20 @@ button,input{font:inherit;color:inherit}
 /* ---- Unit ulasan: hizb (abu kebiruan) dan juz (emas) ---- */
 .u9{--c:#5b6b7b;--cd:#44525f}.u10{--c:#e8b100;--cd:#b88a00;--ct:#3d3000}
 .uh .tag{display:inline-block;margin-left:6px;padding:0 8px;border-radius:8px;background:rgba(0,0,0,.18);font-size:12px}
+
+/* ---- Chest, chip dirham, mode developer ---- */
+.chest{display:block;width:76px;height:68px;background:none;border:0;padding:0;cursor:pointer}
+.chest svg{width:100%;height:100%;overflow:visible}
+.chest.locked svg{filter:grayscale(1);opacity:.55}
+.chest.opened svg{filter:saturate(.8)}
+.chest.ready svg{filter:drop-shadow(0 0 10px #ffc400);animation:bob 1.1s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px) rotate(-3deg)}}
+.top .chip{padding:4px 9px;font-size:14px}
+.chip.dev{border:2px dashed var(--mut);background:none;cursor:pointer;font-size:12px}.chip.dev.on{background:#ff4b4b;border-color:#ff4b4b;color:#fff}
+.node.dev .ic{opacity:.9}
+.devrow{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.devrow button{flex:1;background:rgba(0,0,0,.22);color:inherit;border:1px dashed rgba(255,255,255,.55);border-radius:10px;padding:6px 8px;font-size:12px;cursor:pointer}
+.pop.lk .devrow button{border-color:var(--mut)}
+
+.top{gap:6px}.top .chip{white-space:nowrap}
+@media(max-width:480px){.top{padding:8px 10px;gap:4px}.top .chip{padding:3px 7px;font-size:13px}.top .ico{padding:2px 4px}}
