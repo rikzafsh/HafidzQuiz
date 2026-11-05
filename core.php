@@ -41,7 +41,7 @@ function surah(int $id): array {
             $c[$id][] = [
                 'id' => $a['id'], 'surah_id' => $a['surah_id'], 'ayah' => $a['ayah'], 'arabic' => $a['arabic'],
                 'arabic_words' => $a['arabic_words'] ?? explode(' ', $a['arabic']),
-                'surah' => ['transliteration' => $a['surah']['transliteration'], 'num_ayah' => $a['surah']['num_ayah']],
+                'surah' => ['transliteration' => $a['surah']['transliteration'], 'num_ayah' => $a['surah']['num_ayah'], 'arabic' => trim($a['surah']['arabic'] ?? '')],
             ];
         }
     }

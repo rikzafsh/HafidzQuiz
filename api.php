@@ -3,6 +3,7 @@ ini_set('display_errors', '0');   // jangan pernah mencemari JSON dengan pesan e
 ob_start();
 require __DIR__ . '/core.php';
 require __DIR__ . '/gen.php';
+require __DIR__ . '/mushaf.php';
 
 $a = $_GET['a'] ?? '';
 $in = json_decode(file_get_contents('php://input'), true) ?: [];
@@ -228,6 +229,15 @@ case 'finish':   // skor dihitung dari catatan server, bukan dari laporan browse
     $tot = count($Q); $c = count(array_filter($S, fn($s) => !$s['miss'])); $secs = max(1, time() - (int)$at['started']);
     $res = $at['kind'] === 'jump' ? applyJump($u, (int)$at['unit'], $c, $tot) : applyLesson($u, (int)$at['unit'], (int)$at['level'], (int)$at['lesson'], $c, $tot);
     out($res + ['secs' => $secs]);
+
+case 'mushaf_meta':
+    need(); out(['surahs' => surahNames(), 'maxPage' => mushafMaxPage(), 'lastPos' => mushafLastPos()]);
+case 'mushaf':
+    need(); $p = (int)($_GET['page'] ?? 1); $r = mushafPage($p);
+    if (!$r) fail("Halaman $p belum tersedia (data mushaf baru sampai halaman " . mushafMaxPage() . ').', 404);
+    out($r);
+case 'mushaf_find':
+    need(); out(mushafFind($_GET));
 
 case 'profile':
     $u = need(); $pr = progress($u['id']); $done = $skipped = $lessons = 0;
