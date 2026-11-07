@@ -49,6 +49,8 @@ const ICONS = {
   mountain: `<path d="M1.5 20.5L9 7l4.4 7.4 2.6-3.6 6.5 9.7z" fill="currentColor"/>`,
   flag: `<path d="M6 21V3.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M6.5 4.5h11.5l-2.6 4.2 2.6 4.2H6.5z" fill="#ff4b4b"/>`,
   mushaf: `<rect x="4" y="2.5" width="16" height="19" rx="2.4" fill="#2f9e6b"/><rect x="4" y="2.5" width="3.8" height="19" rx="1.8" fill="#1f7a50"/><circle cx="13.8" cy="10.4" r="4.2" fill="none" stroke="#ffd23f" stroke-width="1.7"/><path d="M13.8 8l.9 1.8 2 .3-1.4 1.4.3 2-1.8-.9-1.8.9.3-2-1.4-1.4 2-.3z" fill="#ffd23f"/><rect x="9.6" y="17" width="8.4" height="1.7" rx=".85" fill="#fff" opacity=".55"/>`,
+  page1: `<rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M9 8h6M9 12h6M9 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>`,
+  page2: `<rect x="2.5" y="4" width="9" height="16" rx="1.8" fill="none" stroke="currentColor" stroke-width="2.2"/><rect x="12.5" y="4" width="9" height="16" rx="1.8" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M5 9h4M5 13h4M15 9h4M15 13h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`,
   search: `<circle cx="10.5" cy="10.5" r="6.4" fill="none" stroke="currentColor" stroke-width="2.8"/><path d="M15.4 15.4L21 21" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>`,
   shield: `<path d="M32 4l24 8v22c0 16-11 28-24 34C19 62 8 50 8 34V12z" fill="#ffc800"/><path d="M32 10l18 6v18c0 12-8 22-18 27-10-5-18-15-18-27V16z" fill="#e39b00" opacity=".4"/>`,
   avatar: `<circle cx="60" cy="52" r="30" fill="#2f8fc7"/><path d="M0 120c0-34 26-50 60-50s60 16 60 50z" fill="#2f8fc7"/><rect x="55" y="38" width="10" height="28" rx="3" fill="#cfeaff" opacity=".9"/><rect x="46" y="47" width="28" height="10" rx="3" fill="#cfeaff" opacity=".9"/>`,
@@ -63,7 +65,8 @@ const stars = (n, s = 14) => el('span', { class: 'stk' }, [0, 1, 2].map(i => ic(
 let keys = null; // penangan keyboard milik layar yang sedang tampil
 const onEnter = fn => { keys = e => { if (e.key === 'Enter') { e.preventDefault(); if (!e.repeat) fn(); } }; };
 addEventListener('keydown', e => { if (keys && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.matches('input,textarea,select')) keys(e); });
-const mount = (...n) => { keys = null; app.replaceChildren(...n); scrollTo(0, 0); };
+let mushafCleanup = null;   // pendengar 'resize' milik layar Mushaf
+const mount = (...n) => { keys = null; mushafCleanup?.(); mushafCleanup = null; document.body.classList.remove('mfit'); app.replaceChildren(...n); scrollTo(0, 0); };
 let me = null;
 addEventListener('unhandledrejection', e => e.reason?.status === 401 ? authView() : toast(e.reason?.message || 'Terjadi kesalahan'));
 const logout = async () => { await api('logout', {}); me = null; authView(); };
@@ -105,16 +108,24 @@ async function juzView() {
       el('b', {}, 'Juz ' + j.juz), el('small', {}, `${j.done}/${j.total} thumn`), el('i', {}, el('u', { style: `width:${100 * j.done / j.total}%` })))))));
 }
 
-// ---------- Mushaf: ayat disusun seperti halaman mushaf; tiap halaman terbagi 5 bagian berwarna yang mengalir di dalam baris ----------
+// ---------- Mushaf: ayat disusun seperti halaman mushaf. Tiap halaman tampil penuh dalam satu layar (huruf menyesuaikan), bisa 1 atau 2 halaman ----------
 const arNum = n => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+const FR = ['', '1/8', '1/4', '3/8', '1/2', '5/8', '3/4', '7/8'];
+const rubLabel = tm => tm.thumn === 1 ? ['Awal', `Hizb ${tm.hizb}`] : [FR[tm.thumn - 1], `Hizb ${tm.hizb}`];   // thumn ke-t dimulai pada (t-1)/8 hizb
 let mushafMeta = null;
 async function mushafView(page, target = null) {
   page = page || +store.get('hq_mushaf') || 1;
   redraw = () => mushafView(page);
   mushafMeta ??= await api('mushaf_meta');
-  let d; try { d = await api('mushaf', null, '&page=' + page); } catch (e) { if (page !== 1) { toast(e.message); return mushafView(1); } throw e; }
-  store.set('hq_mushaf', d.page); const max = d.maxPage, go = (p, t = null) => mushafView(p, t);
+  const max = mushafMeta.maxPage, twoOK = () => innerWidth >= 760;                     // dua halaman hanya muat di layar lebar
+  const wantTwo = store.get('hq_mushaf_two') === '1' && twoOK();
+  const first = wantTwo ? (page % 2 ? page : page - 1) : page;                          // mushaf terbuka: halaman ganjil di KANAN, genap di KIRI
+  const nums = wantTwo ? [first, first + 1] : [first], step = nums.length;
+  const res = await Promise.all(nums.map(n => n > max ? null : api('mushaf', null, '&page=' + n).catch(e => ({ _err: e }))));
+  if (!res[0] || res[0]._err) { if (page !== 1) { toast(res[0]?._err?.message || 'Halaman belum tersedia.'); return mushafView(1); } throw res[0]?._err ?? new Error('Data mushaf kosong.'); }
+  store.set('hq_mushaf', first); const d = res[0];
 
+  const tmData = tm => JSON.stringify({ hizb: tm.hizb, thumn: tm.thumn });
   const secNodes = sec => {   // spanduk surah bersifat blok: bagian dipecah di sekitarnya dengan warna yang sama
     const out = []; let cur = el('span', { class: 'sec s' + sec.n }); out.push(cur);
     sec.items.forEach(it => {
@@ -123,16 +134,19 @@ async function mushafView(page, target = null) {
         cur = el('span', { class: 'sec s' + sec.n }); out.push(cur); return;
       }
       cur.append(el('span', { class: 'ay', 'data-s': it.surah, 'data-a': it.ayah },
-        it.mark ? el('span', { class: 'tm', title: `Awal Hizb ${it.tm.hizb} · Thumn ${it.tm.thumn}` }, '۞ ') : '',
+        it.tm ? (it.mark ? el('span', { class: 'tm', 'data-tm': tmData(it.tm), title: `Awal Hizb ${it.tm.hizb} · Thumn ${it.tm.thumn}` }, '۞ ') : el('span', { class: 'ta', 'data-tm': tmData(it.tm) })) : '',
         it.text, ' ', it.end ? el('span', { class: 'an' }, arNum(it.ayah)) : '', ' '));
     });
     return out.filter(n => n.tagName !== 'SPAN' || n.childNodes.length);
   };
-  const pageEl = el('article', { class: 'mpage', 'aria-label': 'Halaman ' + d.page },
-    el('header', { class: 'mph', dir: 'rtl' }, el('span', {}, d.juz ? 'الجزء ' + arNum(d.juz) : ''), el('span', {}, 'سورة ' + d.surah.arabic)),
-    el('div', { class: 'mtext', dir: 'rtl', lang: 'ar' }, d.sections.flatMap(secNodes)),
-    el('footer', { class: 'mpf' }, arNum(d.page)),
-    el('div', { class: 'mmeta' }, [d.juz && `Juz ${d.juz}`, d.hizb && `Hizb ${d.hizb}`, d.thumn && `Thumn ${d.thumn}`, d.surah.latin].filter(Boolean).join(' · ')));
+  const card = (pd, n) => {
+    if (!pd || pd._err) return el('article', { class: 'mpage empty ' + (n % 2 ? 'odd' : 'even') }, el('p', {}, `Halaman ${n} belum tersedia.`), el('small', {}, `Data mushaf baru sampai halaman ${max}.`));
+    return el('article', { class: 'mpage ' + (n % 2 ? 'odd' : 'even'), 'aria-label': 'Halaman ' + n },
+      el('header', { class: 'mph', dir: 'rtl' }, el('span', {}, pd.juz ? 'الجزء ' + arNum(pd.juz) : ''), el('span', {}, 'سورة ' + pd.surah.arabic)),
+      el('div', { class: 'mbody' }, el('div', { class: 'mtext' }, el('div', { class: 'mflow', dir: 'rtl', lang: 'ar' }, pd.sections.flatMap(secNodes)))),
+      el('footer', { class: 'mpf' }, el('b', {}, arNum(n)), el('small', {}, [pd.juz && `Juz ${pd.juz}`, pd.hizb && `Hizb ${pd.hizb}`, pd.thumn && `Thumn ${pd.thumn}`, pd.surah.latin].filter(Boolean).join(' · '))));
+  };
+  const book = el('div', { class: 'mbook' + (wantTwo ? ' two' : ''), dir: 'rtl' }, nums.map((n, i) => card(res[i], n)));
 
   // Navigasi: surah + ayat, juz, hizb, thumn, atau nomor halaman
   const openNav = () => {
@@ -160,30 +174,69 @@ async function mushafView(page, target = null) {
       tabs.replaceChildren(...Object.keys(LBL).map(k => el('button', { class: 'mtab' + (k === mode ? ' on' : ''), role: 'tab', 'aria-selected': k === mode, onclick: () => { mode = k; draw(); } }, LBL[k])));
       body.querySelector('input,select')?.focus();
     };
-    const submit = async () => { try { const r = await api('mushaf_find', null, cur.q()); close(); go(r.page, r.target); } catch (e) { msg.textContent = e.message; } };
+    const submit = async () => { try { const r = await api('mushaf_find', null, cur.q()); close(); mushafView(r.page, r.target); } catch (e) { msg.textContent = e.message; } };
     const ov = el('div', { class: 'mnv-ov', onclick: close }, el('div', { class: 'mnv', role: 'dialog', 'aria-label': 'Navigasi mushaf', onclick: e => e.stopPropagation() },
       el('h3', {}, 'Pergi ke…'), tabs, body, msg,
       el('div', { class: 'mact' }, el('button', { class: 'btn alt', onclick: close }, 'Batal'), el('button', { class: 'btn', onclick: submit }, 'Pergi'))));
     document.body.append(ov); draw();
-    keys = e => { if (e.key === 'Escape') close(); else if (e.key === 'Enter' && !e.target.matches?.('button')) { e.preventDefault(); submit(); } };
+    keys = e => { if (e.key === 'Escape') close(); };
     ov.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.target.matches('button')) { e.preventDefault(); submit(); } else if (e.key === 'Escape') close(); });
   };
 
+  const go = (p, t = null) => mushafView(p, t);
   const pin = el('input', { type: 'number', min: 1, max, value: d.page, 'aria-label': 'Nomor halaman', inputmode: 'numeric' });
   let jumped = false;   // Enter dan 'change' bisa terpicu bersamaan: proses satu kali saja
   const jumpTo = () => { if (jumped) return; jumped = true; go(Math.min(max, Math.max(1, +pin.value || 1))); };
   pin.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); jumpTo(); } });
   pin.addEventListener('change', jumpTo);
-  const nextB = el('button', { class: 'ibtn', 'aria-label': 'Halaman berikutnya', title: 'Halaman berikutnya (←)', disabled: d.page >= max ? '' : null, onclick: () => go(d.page + 1) }, ic('arrowLeft', 22));
-  const prevB = el('button', { class: 'ibtn flip', 'aria-label': 'Halaman sebelumnya', title: 'Halaman sebelumnya (→)', disabled: d.page <= 1 ? '' : null, onclick: () => go(d.page - 1) }, ic('arrowLeft', 22));
+  const nextB = el('button', { class: 'ibtn', 'aria-label': 'Halaman berikutnya', title: 'Berikutnya (←)', disabled: first + step > max ? '' : null, onclick: () => go(first + step) }, ic('arrowLeft', 22));
+  const prevB = el('button', { class: 'ibtn flip', 'aria-label': 'Halaman sebelumnya', title: 'Sebelumnya (→)', disabled: first - step < 1 ? '' : null, onclick: () => go(first - step) }, ic('arrowLeft', 22));
+  const setMode = two => () => { store.set('hq_mushaf_two', two ? '1' : '0'); go(first); };
+  const seg = twoOK() ? el('div', { class: 'seg', role: 'group', 'aria-label': 'Jumlah halaman' },
+    el('button', { class: !wantTwo ? 'on' : '', 'aria-pressed': String(!wantTwo), title: 'Satu halaman', onclick: setMode(false) }, ic('page1', 22)),
+    el('button', { class: wantTwo ? 'on' : '', 'aria-pressed': String(wantTwo), title: 'Dua halaman', onclick: setMode(true) }, ic('page2', 22))) : '';
   shell('mushaf', topbar(), el('div', { class: 'wrap mwrap' },
-    el('div', { class: 'mtool' }, nextB, el('div', { class: 'pg' }, pin, el('span', { class: 'mut' }, '/ ' + max)), prevB,
-      el('button', { class: 'btn navb', onclick: openNav }, ic('search', 20), 'Navigasi')),
-    max < 604 ? el('p', { class: 'mut mnote' }, `Data mushaf baru tersedia sampai halaman ${max}.`) : '',
-    pageEl, el('div', { class: 'mtool mbot' }, nextB.cloneNode(true), prevB.cloneNode(true))));
-  document.querySelectorAll('.mbot .ibtn').forEach((b, i) => b.addEventListener('click', () => go(d.page + (i ? -1 : 1))));
-  keys = e => { if (e.key === 'ArrowLeft' && d.page < max) go(d.page + 1); else if (e.key === 'ArrowRight' && d.page > 1) go(d.page - 1); };   // arah baca mushaf: kanan ke kiri
-  if (target) { const n = pageEl.querySelector(`.ay[data-s="${target.surah}"][data-a="${target.ayah}"]`); if (n) { n.classList.add('hl'); n.scrollIntoView({ block: 'center' }); } }
+    el('div', { class: 'mtool' }, nextB, el('div', { class: 'pg' }, pin, el('span', { class: 'mut', title: `Data mushaf baru tersedia sampai halaman ${max}.` }, '/ ' + max)), prevB, seg,
+      el('button', { class: 'btn navb', 'aria-label': 'Navigasi', onclick: openNav }, ic('search', 20), el('span', { class: 'lbl' }, 'Navigasi'))),
+    book));
+  keys = e => { if (e.key === 'ArrowLeft' && first + step <= max) go(first + step); else if (e.key === 'ArrowRight' && first - step >= 1) go(first - step); };   // arah baca mushaf: kanan ke kiri
+  document.body.classList.add('mfit');
+
+  // ---- tata letak: setiap halaman penuh dalam satu layar; ukuran huruf dicari agar seluruh teks pas ----
+  const pagesEls = [...book.querySelectorAll('.mpage')];
+  const fitText = pg => {   // cari huruf terbesar yang membuat seluruh teks muat; bila perlu rapatkan jarak baris, dan terakhir izinkan huruf < 11px
+    const box = pg.querySelector('.mtext'), flow = pg.querySelector('.mflow'); if (!box) return;
+    const hi = Math.min(46, pg.clientWidth * .09 + 8);
+    const attempt = (lh, minFs) => {
+      flow.style.lineHeight = lh; flow.style.fontSize = minFs + 'px'; if (flow.offsetHeight > box.clientHeight) return false;
+      let lo = minFs, h = hi; for (let i = 0; i < 11; i++) { const m = (lo + h) / 2; flow.style.fontSize = m + 'px'; if (flow.offsetHeight <= box.clientHeight) lo = m; else h = m; }
+      flow.style.fontSize = lo + 'px'; return true;
+    };
+    if (!(attempt(2.15, 11) || attempt(2, 11) || attempt(1.85, 11))) attempt(1.8, 7);
+    box.classList.toggle('ov', flow.offsetHeight > box.clientHeight); pg.dataset.fs = parseFloat(flow.style.fontSize).toFixed(1);
+  };
+  const placeNotes = pg => {   // keterangan pembagian di margin luar, sejajar dengan baris tanda ۞
+    pg.querySelectorAll('.mn').forEach(n => n.remove()); const body = pg.querySelector('.mbody'); if (!body) return;
+    const br = body.getBoundingClientRect(); let lastBottom = -1e9;
+    pg.querySelectorAll('[data-tm]').forEach(m => {
+      const tm = JSON.parse(m.dataset.tm), [a, b2] = rubLabel(tm), r = m.getBoundingClientRect();
+      const n = el('div', { class: 'mn', title: `${a} ${b2}`, 'data-tm': m.dataset.tm, 'aria-label': `${a} ${b2}` }, el('b', {}, a), el('span', {}, b2));
+      body.append(n); let y = r.top + r.height / 2 - br.top - n.offsetHeight / 2; y = Math.max(y, lastBottom + 3); n.style.top = y + 'px'; lastBottom = y + n.offsetHeight;
+    });
+  };
+  const layout = () => {
+    const top = book.getBoundingClientRect().top, sb = document.querySelector('.side').getBoundingClientRect();
+    const barH = sb.top > innerHeight / 2 ? innerHeight - sb.top : 0;                        // tab bawah (HP) memakan ruang
+    const avail = Math.max(240, innerHeight - top - barH - 10), cw = book.clientWidth, gap = 14, n = pagesEls.length;
+    const pw = Math.min((cw - gap * (n - 1)) / n, avail * .8);
+    book.style.height = avail + 'px';
+    pagesEls.forEach(p => { p.style.width = pw + 'px'; p.style.height = avail + 'px'; p.style.setProperty('--mw', Math.max(38, Math.min(58, pw * .13)) + 'px'); });
+    pagesEls.forEach(p => { fitText(p); placeNotes(p); });
+  };
+  let tmr; const onResize = () => { clearTimeout(tmr); tmr = setTimeout(() => { (store.get('hq_mushaf_two') === '1' && twoOK()) !== wantTwo ? go(first) : layout(); }, 120); };
+  addEventListener('resize', onResize); mushafCleanup = () => { removeEventListener('resize', onResize); clearTimeout(tmr); };
+  layout(); requestAnimationFrame(layout); document.fonts?.ready.then(layout);
+  if (target) { const n = book.querySelector(`.ay[data-s="${target.surah}"][data-a="${target.ayah}"]`); if (n) n.classList.add('hl'); }
 }
 
 // ---------- Profil ----------

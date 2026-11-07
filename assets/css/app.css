@@ -189,29 +189,41 @@ a.btn,.pact .btn{display:flex;align-items:center;justify-content:center;gap:10px
 /* ================= Mushaf ================= */
 :root{--m1:#ffd1d1;--m2:#fff0a8;--m3:#cdf1c0;--m4:#c9e9fb;--m5:#e3d2f9}
 @media(prefers-color-scheme:dark){:root{--m1:#5b2b31;--m2:#574a1c;--m3:#27502a;--m4:#1f4660;--m5:#41305f}}
-.mwrap{max-width:760px}
-.mtool{display:flex;gap:8px;align-items:center;margin:4px 0 10px}
-.mtool .pg{display:flex;align-items:center;justify-content:center;gap:8px;flex:1}
-.mtool input{width:84px;text-align:center;padding:9px 6px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:inherit;font-weight:800}
-.ibtn{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;background:var(--bg);color:var(--fg);cursor:pointer}
+/* layar penuh: halaman mushaf tampil utuh tanpa scroll */
+.mfit{overflow:hidden}.mfit .main{height:100vh;overflow:hidden;padding-bottom:0}
+.mwrap{max-width:none;padding:6px 12px 0}
+.mtool{display:flex;gap:8px;align-items:center;justify-content:center;margin:0 auto 8px}
+.mtool .pg{display:flex;align-items:center;gap:6px}
+.mtool input{width:76px;text-align:center;padding:8px 4px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:inherit;font-weight:800}
+.ibtn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:2px solid var(--line);border-bottom-width:4px;border-radius:12px;background:var(--bg);color:var(--fg);cursor:pointer}
 .ibtn:disabled{opacity:.4;cursor:not-allowed}.ibtn.flip .i{transform:rotate(180deg)}
-.btn.navb{display:inline-flex;width:auto;gap:8px;align-items:center;padding:10px 16px}
-.mnote{text-align:center;margin:0 0 8px;font-size:13px}
-.mpage{border:2px solid var(--line);border-radius:18px;padding:16px 20px 12px;background:var(--bg);box-shadow:0 5px 0 var(--line)}
-.mph{display:flex;justify-content:space-between;font-family:"LPMQ IsepMisbah","Scheherazade New","Noto Naskh Arabic",serif;font-size:20px;color:var(--mut);border-bottom:2px solid var(--line);padding-bottom:6px;margin-bottom:12px}
-.mtext{font-family:"LPMQ IsepMisbah","Scheherazade New","Noto Naskh Arabic","Amiri",serif;font-size:clamp(24px,4.6vw,32px);line-height:2.6;text-align:justify;word-spacing:.05em}
-.sec{padding:3px 0;border-radius:8px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.seg{display:inline-flex;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:40px;border:0;background:var(--bg);color:var(--mut);cursor:pointer}
+.seg button.on{background:var(--sel);color:#1cb0f6}
+.btn.navb{display:inline-flex;width:auto;gap:8px;align-items:center;padding:9px 16px;height:44px}
+.mbook{display:flex;justify-content:center;gap:14px;min-height:0}
+.mpage{flex:none;display:flex;flex-direction:column;box-sizing:border-box;border:2px solid var(--line);border-radius:16px;background:var(--bg);box-shadow:0 4px 0 var(--line);overflow:hidden;padding:6px 10px 4px}
+.mpage.empty{align-items:center;justify-content:center;text-align:center;color:var(--mut);gap:4px}
+.mph{flex:none;display:flex;justify-content:space-between;font-family:"LPMQ IsepMisbah","Scheherazade New","Noto Naskh Arabic",serif;font-size:17px;line-height:1.5;color:var(--mut);border-bottom:2px solid var(--line);padding-bottom:2px;margin-bottom:4px}
+.mbody{position:relative;flex:1;min-height:0;display:flex}
+.mpage.odd .mbody{padding-right:calc(var(--mw) + 6px);padding-left:2px}.mpage.even .mbody{padding-left:calc(var(--mw) + 6px);padding-right:2px}
+.mtext{flex:1;min-width:0;display:flex;align-items:center;overflow:hidden}.mtext.ov{overflow:auto}
+.mflow{width:100%;font-family:"LPMQ IsepMisbah","Scheherazade New","Noto Naskh Arabic","Amiri",serif;line-height:2.15;text-align:justify;word-spacing:.04em}
+.sec{padding:2px 0;border-radius:6px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
 .s1{background:var(--m1)}.s2{background:var(--m2)}.s3{background:var(--m3)}.s4{background:var(--m4)}.s5{background:var(--m5)}
 .an{display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;margin:0 .1em;padding:0 .25em;box-sizing:border-box;border:2px solid #c9a227;border-radius:50%;font-size:.5em;line-height:1;color:#8a6d00;font-weight:700;vertical-align:middle;font-family:"Scheherazade New","Noto Naskh Arabic",serif;background:rgba(255,255,255,.55)}
-.tm{color:#c28a00;font-weight:700}
-.sb{margin:10px 0;padding:6px 10px;text-align:center;border:2px solid #c9a227;border-radius:12px;background:#fff7d6;color:#6b4a00;font-size:.85em;line-height:2}
-@media(prefers-color-scheme:dark){.sb{background:#3a3115;color:#f1d98a}.an{background:rgba(0,0,0,.25);color:#f1d98a}}
-.bsm{font-size:.9em;line-height:2.2}
-.mpf{text-align:center;margin-top:10px;color:var(--mut);font-size:22px;font-family:"Scheherazade New","Noto Naskh Arabic",serif}
-.mmeta{text-align:center;color:var(--mut);font-size:12px;margin-top:2px}
+.tm{color:#c28a00;font-weight:700}.ta{display:inline-block;width:0;height:1em;vertical-align:middle}
+.sb{margin:6px 0;padding:2px 8px;text-align:center;border:2px solid #c9a227;border-radius:10px;background:#fff7d6;color:#6b4a00;font-size:.8em;line-height:1.9}
+.bsm{font-size:.85em;line-height:2}
+@media(prefers-color-scheme:dark){.sb{background:#3a3115;color:#f1d98a}.an{background:rgba(0,0,0,.25);color:#f1d98a}.mn{background:#3a3115;color:#f1d98a}}
+.mpf{flex:none;display:flex;flex-direction:column;align-items:center;line-height:1.2;color:var(--mut);padding-top:2px}
+.mpf b{font-size:17px;font-family:"Scheherazade New","Noto Naskh Arabic",serif}.mpf small{font-size:11px}
+/* keterangan pembagian (1/8 Hizb 1, 1/4 Hizb 1, ...) di margin luar, sejajar baris tanda ۞ */
+.mn{position:absolute;width:var(--mw);box-sizing:border-box;text-align:center;font-family:system-ui,sans-serif;line-height:1.15;color:#8a6d00;background:#fff7d6;border:2px solid #c9a227;border-radius:10px;padding:3px 1px;word-break:keep-all}
+.mn b{display:block;font-size:12px}.mn span{display:block;font-size:10px;font-weight:700}
+.mpage.odd .mn{right:0}.mpage.even .mn{left:0}
 .ay.hl{outline:3px solid #1cb0f6;outline-offset:2px;border-radius:6px;animation:hlp 1.2s ease 2}
 @keyframes hlp{50%{outline-color:transparent}}
-.mbot{margin-top:12px;justify-content:space-between}
 /* panel navigasi */
 .mnv-ov{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
 .mnv{width:min(460px,100%);max-height:92vh;overflow:auto;background:var(--bg);border:2px solid var(--line);border-radius:18px;padding:16px 18px}
@@ -222,5 +234,5 @@ a.btn,.pact .btn{display:flex;align-items:center;justify-content:center;gap:10px
 .fld{display:grid;gap:4px;margin:12px 0 0}.fld label{font-size:12px;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
 .fld select,.fld input{padding:10px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--fg);font:inherit;width:100%}
 .mact{display:flex;gap:10px;margin-top:16px}.mact .btn{flex:1}
-@media(max-width:700px){.mnv-ov{align-items:flex-end;padding:0}.mnv{width:100%;border-radius:18px 18px 0 0}.mtext{line-height:2.45}.mpage{padding:12px 12px 10px}}
-@media(max-width:420px){.mtool{flex-wrap:wrap}.mtool .pg{flex:1 1 0;min-width:0}.mtool input{width:64px}.btn.navb{flex:1 1 100%;justify-content:center}.mbot{flex-wrap:nowrap}}
+@media(max-width:700px){.mnv-ov{align-items:flex-end;padding:0}.mnv{width:100%;border-radius:18px 18px 0 0}.mwrap{padding:4px 8px 0}.mpage{padding:4px 6px 3px;border-radius:12px}.mph{font-size:15px}}
+@media(max-width:560px){.btn.navb{width:44px;padding:0;justify-content:center}.btn.navb .lbl{display:none}.mtool{gap:6px}.mtool input{width:62px}}
