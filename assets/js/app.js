@@ -241,16 +241,16 @@ async function mushafView(page, target = null) {
 
 // ---------- Profil ----------
 const ACH = [
-  { icon: 'flame', title: 'Api Semangat', steps: [3, 7, 14, 30, 100, 365], text: n => `Mencapai streak ${n} hari`, val: s => s.streak },
+  { icon: 'flame', title: 'Api Semangat', steps: [3, 7, 14, 30, 100, 365], text: n => `Mencapai streak ${n} hari`, val: s => s.streakPeak },
   { icon: 'bolt', title: 'Penuntut Ilmu', steps: [100, 500, 1000, 5000, 10000, 30000], text: n => `Mengumpulkan ${n} XP`, val: s => s.xp },
   { icon: 'book', title: 'Penghafal', steps: [1, 4, 8, 16, 48, 160, 480], text: n => `Menyelesaikan ${n} thumn`, val: s => s.thumnDone },
-  { icon: 'coin', title: 'Pengumpul Dirham', steps: [20, 100, 300, 1000], text: n => `Mengumpulkan ${n} dirham`, val: s => s.dirham },
+  { icon: 'coin', title: 'Pengumpul Dirham', steps: [20, 100, 300, 1000], text: n => `Mengumpulkan ${n} dirham`, val: s => s.dirhamTotal },
 ];
 async function profileView() {
   redraw = () => profileView();
-  const d = await api('profile'); me = d.user; const s = { ...d.stats, streak: me.streak, xp: me.xp, dirham: me.dirham };
+  const d = await api('profile'); me = d.user; const s = { ...d.stats, streak: me.streak, xp: me.xp, dirham: me.dirham, streakPeak: me.streakPeak, dirhamTotal: me.dirhamTotal };
   const joined = d.joined ? new Date(d.joined.replace(' ', 'T')).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : null;
-  const card = (icon, val, lbl, cls = '') => el('div', { class: 'sc2 ' + cls }, ic(icon, 34), el('div', {}, el('b', {}, val), el('small', {}, lbl)));
+  const card = (icon, val, lbl, cls = '', sub = '') => el('div', { class: 'sc2 ' + cls }, ic(icon, 34), el('div', {}, el('b', {}, val), el('small', {}, lbl), sub ? el('small', { class: 'sub' }, sub) : ''));
   const badge = (a) => {
     const v = a.val(s), lv = a.steps.filter(n => v >= n).length, next = a.steps[lv], pct = next ? Math.min(100, 100 * v / next) : 100;
     return el('div', { class: 'ach' }, el('div', { class: 'bdg' }, ic('shield', 64), el('span', { class: 'bi' }, ic(a.icon, 26)), el('small', {}, lv ? 'LEVEL ' + lv : 'BELUM')),
@@ -261,7 +261,7 @@ async function profileView() {
     el('div', { class: 'pbanner' }, ic('avatar', 150)),
     el('h2', { class: 'pname' }, me.name), el('p', { class: 'mut' }, joined ? 'Bergabung ' + joined : 'Pengguna HafidzQuiz'),
     el('h3', {}, 'Statistik'),
-    el('div', { class: 'stats' }, card('flame', me.streak, 'Streak (hari)', 'gold'), card('bolt', me.xp, 'Total XP'), card('coin', me.dirham, 'Dirham'),
+    el('div', { class: 'stats' }, card('flame', me.streak, 'Streak (hari)', 'gold', `Terpanjang: ${me.streakPeak}`), card('bolt', me.xp, 'Total XP'), card('coin', me.dirham, 'Dirham', '', me.dirhamTotal > me.dirham ? `Total didapat: ${me.dirhamTotal}` : ''),
       card('check', `${s.thumnDone}/${s.thumnTotal}`, 'Thumn selesai' + (s.thumnSkipped ? ` (${s.thumnSkipped} dilewati)` : ''))),
     el('h3', {}, 'Pencapaian'), el('div', { class: 'achs' }, ACH.map(badge)),
     el('div', { class: 'pact' },

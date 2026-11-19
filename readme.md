@@ -3,7 +3,7 @@
 Aplikasi web berbentuk kuis ala Duolingo untuk **menghafal Al-Qur'an**. Responsif (PC dan HP), memakai akun pengguna untuk menyimpan XP dan capaian, dan dirancang agar course lain (hafalan matan manzumah, syair, belajar aksara) bisa ditambahkan nanti. Tahap ini baru berisi course **Hafalan Al-Qur'an**.
 
 > Dokumen ini dan `knowledge.md` diperbarui setiap ada permintaan baru.
-> Terakhir diperbarui: 7 November 2026.
+> Terakhir diperbarui: 18 November 2026.
 
 ---
 
@@ -139,7 +139,7 @@ Catatan:
 | XP ujian akhir | 20 (ulang: 10), bonus +10. Ujian yang gagal: 0 XP |
 | XP tes lompat | +20 bila berhasil |
 | Bintang | 100% = 3, ≥ 85% = 2, selainnya = 1 |
-| Streak | Naik bila belajar di hari berurutan; reset ke 1 bila terlewat sehari |
+| Streak | Naik bila belajar di hari berurutan. Bila kemarin dan hari ini belum belajar, streak yang tampil **hangus (0)** dan mulai lagi dari 1 saat belajar. **Streak terpanjang** tetap tersimpan dan dipakai untuk pencapaian |
 | Beruntun | Label "N BERTURUT-TURUT" muncul mulai 2 benar beruntun; bar menjadi oranye mulai 3 |
 | Chest | Dua per unit thumn: setelah level 4 dan level 7 selesai. Isi acak **10–20 dirham**, sekali per chest. Hanya terbuka bila lesson level itu benar-benar dikerjakan (bukan lewat lompat) |
 | Waktu | Dihitung server dari sesi dimulai sampai selesai, ditampilkan di layar "Lesson selesai" |
@@ -152,7 +152,8 @@ Layar "Lesson selesai" menampilkan tiga kartu: Total XP, Waktu, Akurasi, ditamba
 
 Menu **Mushaf** (di bawah Belajar) menampilkan ayat seperti halaman mushaf:
 
-- Data pembagian halaman dari `data/mushaf.json` (hasil konversi Excel). Saat ini tersedia **halaman 1–41** (Juz 1 dan 2); data akan ditambah.
+- Data pembagian halaman dari `data/mushaf.json` (hasil konversi Excel). Data mencakup **seluruh mushaf: 604 halaman, 3.012 bagian** (132 di antaranya terpotong di tengah ayat).
+- Satu halaman = **15 baris** (format Madani). Pemenggalan baris pada ayat dan indeks kata tertentu akan ditambahkan nanti; saat ini tiap bagian mengalir bebas di dalam baris.
 - Satu halaman terbagi **5 bagian** (halaman 1–2: 1 bagian) dengan latar **merah, kuning, hijau, biru muda, ungu**. Bagian mengalir di dalam baris, dan pembagiannya boleh jatuh di tengah ayat (diatur kolom `Word_Count`).
 - Penanda akhir ayat berbentuk lingkaran bernomor. Spanduk surah (dengan basmalah, kecuali Al-Fatihah dan At-Taubah) muncul di awal surah.
 - Tanda **۞** disisipkan di awal tiap thumn bila teks ayat belum memilikinya.
@@ -171,14 +172,15 @@ Dua menu di sidebar kiri (PC, berlabel), sidebar ikon (tablet ≤ 1000px), atau 
 
 ### Profil
 
-Banner dan avatar, nama, tanggal bergabung, kartu statistik (streak, XP, dirham, thumn selesai), dan **pencapaian bertingkat**:
+Banner dan avatar, nama, tanggal bergabung, kartu statistik (streak dengan keterangan "Terpanjang", XP, dirham dengan keterangan "Total didapat", thumn selesai), dan **pencapaian bertingkat**. Pencapaian selalu dihitung dari **nilai tertinggi yang pernah diraih**: streak terpanjang (bukan streak saat ini, yang bisa hangus) dan total dirham yang pernah didapat (tidak berkurang bila dirham kelak dibelanjakan). XP tidak pernah berkurang.
+
 
 | Pencapaian | Ambang level |
 |---|---|
-| Api Semangat (streak) | 3, 7, 14, 30, 100, 365 hari |
+| Api Semangat (streak terpanjang) | 3, 7, 14, 30, 100, 365 hari |
 | Penuntut Ilmu (XP) | 100, 500, 1.000, 5.000, 10.000, 30.000 |
 | Penghafal (thumn selesai) | 1, 4, 8, 16, 48, 160, 480 |
-| Pengumpul Dirham | 20, 100, 300, 1.000 |
+| Pengumpul Dirham (total dirham yang pernah didapat) | 20, 100, 300, 1.000 |
 
 Tombol di profil: Muroja'ah bebas (kuis lama), Laporan masukan (khusus admin), Keluar.
 
@@ -294,6 +296,8 @@ Dibuat dari Excel. Format Excel (`data/Mushaf_Page_Division.xlsx`), satu baris =
 
 Contoh: ayat 2:102 terpotong tiga → baris dengan `Word_Count` 23, baris dengan 51, lalu baris tanpa `Word_Count`.
 
+Berkas Excel pengguna memiliki **3 sheet**; konverter hanya membaca **sheet pertama** (Sheet1: pembagian halaman, kini lengkap 604 halaman). **Sheet2** (topik/subtopik per ayat, baru 2:6–5:110) dan **Sheet3** (tema per ayat, baru 2:6–5:119) disiapkan untuk fitur berikutnya dan **belum dipakai aplikasi**.
+
 ```bash
 php xlsx_ke_mushaf.php                 # membaca data/Mushaf_Page_Division.xlsx
 php xlsx_ke_mushaf.php data/file.csv   # atau CSV
@@ -332,7 +336,7 @@ SQLite di `storage/hafidz.sqlite`:
 
 | Tabel | Isi |
 |---|---|
-| `users` | `id, username, hash, xp, streak, last_day, dirham, created_at` |
+| `users` | `id, username, hash, xp, streak, last_day, dirham, created_at, streak_peak, dirham_total` |
 | `progress` | `user_id, thumn (= ID unit), node, stars, best`. Kunci `node`: `V{level}.{lesson}` (lesson selesai), `C4`/`C7` (chest terbuka; jumlah dirham di kolom `stars`), `JUMP` (unit dilewati) |
 | `attempts` | Sesi kuis aktif: soal beserta kunci jawaban, status tiap soal, nyawa, waktu mulai. Dibersihkan setelah 24 jam |
 | `feedback` | Masukan pengguna: jenis, alasan, catatan, soal dan jawaban, status "selesai ditangani" |
@@ -352,7 +356,7 @@ Keterbatasan yang diketahui: tidak ada pembatasan laju (rate limiting) pada logi
 
 ## Pengujian
 
-Pengujian dilakukan otomatis dengan Chromium headless (Playwright) dan skrip API, memakai **data tiruan**: ayat Al-Baqarah yang diketik manual dengan panjang realistis, dan data thumn serta mushaf asli. Yang sudah terbukti: seluruh alur kuis dan penilaian server (termasuk upaya curang), semua tipe soal, aturan buka-kunci, chest, tes lompat, masukan dan halaman admin, konverter Excel/CSV (termasuk data rusak), 259 ayat terpetakan ke halaman yang cocok dengan data mushaf Hafs, label margin pembagian, mode 1 dan 2 halaman, serta 41 halaman muat tanpa scroll di 11 ukuran layar.
+Pengujian dilakukan otomatis dengan Chromium headless (Playwright) dan skrip API. Data thumn dan pembagian mushaf adalah data asli pengguna; teks ayat untuk uji berasal dari ayat tiruan atau dari paket npm `quran-json` (CC-BY-4.0, dipakai **hanya untuk pengujian lokal**, tidak termasuk dalam proyek). Yang sudah terbukti: seluruh alur kuis dan penilaian server (termasuk upaya curang), semua tipe soal, aturan buka-kunci, chest, tes lompat, masukan dan halaman admin, streak yang hangus dan nilai tertinggi untuk pencapaian, konverter Excel/CSV (termasuk data rusak), dan untuk Mushaf: seluruh 6.236 ayat muncul tepat sekali dan tersusun kembali persis, 6.234 ayat berhalaman sama dengan data mushaf Hafs (selisih di 2:48 dan 69:8 mengikuti datamu), 132 nilai `Word_Count` valid terhadap jumlah kata ayat, 480 label margin pembagian benar dan sejajar dengan baris ۞ (selisih ≤ 0,16px), serta **seluruh 604 halaman muat tanpa scroll** di 8 ukuran layar (1 halaman) dan 302 spread di 4 ukuran layar (2 halaman).
 
 Belum diuji: data ayat asli lengkap (114 surah) di dalam aplikasi, seret-lepas di layar sentuh asli, Safari dan Firefox, serta hosting sebenarnya.
 
@@ -360,6 +364,6 @@ Belum diuji: data ayat asli lengkap (114 surah) di dalam aplikasi, seret-lepas d
 
 ## Batasan dan rencana
 
-- Data mushaf baru sampai halaman 41 (Juz 1–2); halaman lain menampilkan pesan "belum tersedia".
+- Pemenggalan baris mushaf (15 baris per halaman) dan perombakan aturan pembagian Hizb/Juz menunggu arahan pengguna; sheet topik dan tema di Excel belum dipakai.
 - Hanya course Al-Qur'an. Rencana: course matan manzumah, syair, dan aksara dengan generator soalnya sendiri di atas kerangka unit/level/lesson yang sama.
 - Ide berikutnya: mode review untuk ayat yang sering salah, audio murottal per ayat, tata letak peta di samping untuk PC, toko untuk membelanjakan dirham, papan peringkat.

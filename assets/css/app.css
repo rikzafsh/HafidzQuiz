@@ -236,3 +236,5 @@ a.btn,.pact .btn{display:flex;align-items:center;justify-content:center;gap:10px
 .mact{display:flex;gap:10px;margin-top:16px}.mact .btn{flex:1}
 @media(max-width:700px){.mnv-ov{align-items:flex-end;padding:0}.mnv{width:100%;border-radius:18px 18px 0 0}.mwrap{padding:4px 8px 0}.mpage{padding:4px 6px 3px;border-radius:12px}.mph{font-size:15px}}
 @media(max-width:560px){.btn.navb{width:44px;padding:0;justify-content:center}.btn.navb .lbl{display:none}.mtool{gap:6px}.mtool input{width:62px}}
+
+.sc2 small.sub{display:block;font-size:11px;opacity:.85}

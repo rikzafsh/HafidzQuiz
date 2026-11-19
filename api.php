@@ -10,11 +10,18 @@ $in = json_decode(file_get_contents('php://input'), true) ?: [];
 
 function me() {
     if (empty($_SESSION['uid'])) return null;
-    $s = db()->prepare('SELECT id, username, xp, streak, last_day, dirham FROM users WHERE id=?'); $s->execute([$_SESSION['uid']]);
+    $s = db()->prepare('SELECT id, username, xp, streak, last_day, dirham, streak_peak, dirham_total FROM users WHERE id=?'); $s->execute([$_SESSION['uid']]);
     return $s->fetch() ?: null;
 }
 function need() { return me() ?? fail('Silakan masuk dahulu.', 401); }
-function pub($u) { return ['name' => $u['username'], 'xp' => (int)$u['xp'], 'streak' => (int)$u['streak'], 'dirham' => (int)($u['dirham'] ?? 0), 'dev' => DEV_MODE, 'admin' => isAdmin($u)]; }
+function effStreak($u): int {   // streak yang tampil: hangus (0) bila kemarin dan hari ini belum belajar
+    $d = $u['last_day'] ?? null; return ($d === date('Y-m-d') || $d === date('Y-m-d', strtotime('-1 day'))) ? (int)$u['streak'] : 0;
+}
+function pub($u) {
+    $es = effStreak($u); $dr = (int)($u['dirham'] ?? 0);
+    return ['name' => $u['username'], 'xp' => (int)$u['xp'], 'streak' => $es, 'dirham' => $dr, 'dev' => DEV_MODE, 'admin' => isAdmin($u),
+            'streakPeak' => max((int)($u['streak_peak'] ?? 0), $es), 'dirhamTotal' => max((int)($u['dirham_total'] ?? 0), $dr)];   // dasar pencapaian
+}
 function progress($uid) {
     $s = db()->prepare('SELECT thumn, node, stars FROM progress WHERE user_id=?'); $s->execute([$uid]);
     $m = []; foreach ($s as $r) $m["{$r['thumn']}:{$r['node']}"] = (int)$r['stars']; return $m;
@@ -120,7 +127,7 @@ function applyLesson($u, $un, $lv, $les, $c, $tot): array {   // $c = jumlah soa
     $levelDone = false;
     if ($passed) { $pr = progress($u['id']); $levelDone = true; for ($j = 1; $j <= 4; $j++) if (!isset($pr["$un:V$lv.$j"])) $levelDone = false; }
     $streak = touchStreak($u);
-    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $u['id']]);
+    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=?, streak_peak=MAX(streak_peak, CAST(? AS INTEGER)) WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $streak, $u['id']]);
     return ['passed' => $passed, 'pct' => $pct, 'stars' => $passed ? $stars : 0, 'gain' => $gain, 'bonus' => $passed ? $bonus : 0, 'xp' => (int)$u['xp'] + $gain,
             'streak' => $streak, 'level' => $lv, 'lesson' => $les, 'lessons' => 4, 'levelDone' => $levelDone, 'unitDone' => $passed && $exam];
 }
@@ -129,7 +136,7 @@ function applyJump($u, $un, $c, $tot): array {   // tes lompat: 25 soal, semuany
     $passed = $tot === 25 && $c === 25; $gain = $passed ? 20 : 0;
     if ($passed) { $s = db()->prepare('INSERT OR IGNORE INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,1,100)'); foreach ($skip as $k) $s->execute([$u['id'], $k, 'JUMP']); }
     $streak = touchStreak($u);
-    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=? WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $u['id']]);
+    db()->prepare('UPDATE users SET xp=xp+?, streak=?, last_day=?, streak_peak=MAX(streak_peak, CAST(? AS INTEGER)) WHERE id=?')->execute([$gain, $streak, date('Y-m-d'), $streak, $u['id']]);
     return ['passed' => $passed, 'pct' => $passed ? 100 : 0, 'gain' => $gain, 'bonus' => 0, 'xp' => (int)$u['xp'] + $gain, 'streak' => $streak, 'skipped' => count($skip)];
 }
 
@@ -265,7 +272,7 @@ case 'claim':   // buka chest (unit thumn, setelah level 4 / 7): 10-20 dirham ac
     $s = $pdo->prepare('INSERT OR IGNORE INTO progress(user_id,thumn,node,stars,best) VALUES(?,?,?,?,0)');   // jumlah dirham disimpan di kolom stars
     $s->execute([$u['id'], $un, "C$ch", $amt]);
     if ($s->rowCount() === 0) { $pdo->rollBack(); fail('Chest ini sudah dibuka.'); }
-    $pdo->prepare('UPDATE users SET dirham=dirham+? WHERE id=?')->execute([$amt, $u['id']]); $pdo->commit();
+    $pdo->prepare('UPDATE users SET dirham=dirham+?, dirham_total=dirham_total+? WHERE id=?')->execute([$amt, $amt, $u['id']]); $pdo->commit();
     out(['amount' => $amt, 'dirham' => (int)$u['dirham'] + $amt]);
 
 case 'dev_mark':   // SEMENTARA: tandai level (dan semua level sebelumnya) selesai

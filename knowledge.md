@@ -3,7 +3,7 @@
 Catatan semua informasi, pengetahuan, kebutuhan, dan keputusan yang diberikan pengguna selama pengembangan HafidzQuiz. Dipakai sebagai ingatan proyek: siapa pun (atau sesi berikutnya) yang melanjutkan pengembangan bisa memahami *mengapa* aplikasi dibuat begini.
 
 > **Aturan pemeliharaan:** setiap kali pengguna meminta sesuatu, dokumen ini dan `README.md` diperbarui (permintaan baru dicatat di bagian 11, informasi baru masuk ke bagian yang sesuai, pertanyaan yang terjawab dipindahkan dari bagian 9).
-> Terakhir diperbarui: 7 November 2026 (setelah permintaan P17).
+> Terakhir diperbarui: 18 November 2026 (setelah permintaan P18).
 
 **Cara membaca:** bagian 1–7 adalah sumber kebenaran dari pengguna. Bagian 8 berisi asumsi Claude yang **belum dikonfirmasi** dan boleh diubah kapan saja. Rujukan `[P#]` mengarah ke riwayat permintaan di bagian 11.
 
@@ -35,10 +35,11 @@ Catatan semua informasi, pengetahuan, kebutuhan, dan keputusan yang diberikan pe
 | Kode `QuranJsonParser` [P3] | Parser data ayat dan `splitAyahForQuestion` | Pengguna mengizinkan modifikasi agar lebih fleksibel dan efisien. Pola waqaf di kode aslinya: `ۖۗۘۙۚۛۜ`, `ࣖ`, dan karakter `ۮ` yang sebenarnya bukan tanda waqaf |
 | Keluaran `cek_thumn.php` [P7] | 9 masalah pada thumn.json | Dipakai untuk melacak data bermasalah |
 | **`thumn_fix.csv`** [P9] | **Data thumn hasil perbaikan pengguna: sumber kebenaran terbaru** | Pemisah `;`, UTF-8 BOM, CRLF. Kolom: `No;Juz;Hizb;Nisf;Rub;Thumn;No_Surah;Ayat_Awal`. 480 baris. Dua baris (No 166 dan 291) punya penanda `///` di kolom terakhir yang belum dijelaskan |
-| **`Mushaf_Page_Division.xlsx`** [P15] | Pemetaan halaman mushaf yang dibuat pengguna | Kolom: `No, Page, Section, Surah, Ayat_End, Word_Count`. Kolom Page dan Section berupa rumus (`=B4+1`, `=C4`, merujuk 5 baris di atas). Mencakup halaman 1–41. **Belum lengkap; akan ditambah pengguna** |
+| **`Mushaf_Page_Division.xlsx`** [P15] | Pemetaan halaman mushaf yang dibuat pengguna | Kolom: `No, Page, Section, Surah, Ayat_End, Word_Count`. Kolom Page dan Section berupa rumus (`=B4+1`, `=C4`, merujuk 5 baris di atas). Mencakup halaman 1–41. Versi awal (41 halaman); **digantikan oleh versi lengkap di P18** |
+| **`Mushaf_Page_Division_1.xlsx`** [P18] | **Versi lengkap pemetaan halaman mushaf**, menggantikan versi 41 halaman | 3 sheet. **Sheet1**: pembagian halaman (kolom sama; kini berisi nilai langsung tanpa rumus), **604 halaman / 3.012 bagian**. **Sheet2** `No, Surah, Ayah, Topic, Subtopic`: topik/subtopik per ayat (baru 2:6–5:110). **Sheet3** `No, Surah, Ayat, Theme`: tema per ayat (baru 2:6–5:119). Sheet2 dan Sheet3 untuk fitur yang akan dijelaskan pengguna nanti. Di proyek disimpan sebagai `data/Mushaf_Page_Division.xlsx` |
 | Screenshot | Referensi tampilan | Lihat bagian 5 |
 
-Yang tidak dapat diakses Claude: folder `data/` di GitHub (diblokir untuk akses otomatis). Karena itu data ayat asli lengkap belum pernah dipakai untuk pengujian; semua uji memakai data tiruan.
+Yang tidak dapat diakses Claude: folder `data/` di GitHub (diblokir untuk akses otomatis). Karena itu data ayat asli milik pengguna belum pernah dipakai untuk pengujian; uji memakai ayat tiruan dan, sejak P18, teks Arab dari paket npm `quran-json` (CC-BY-4.0) hanya untuk pengujian lokal (tidak termasuk dalam proyek).
 
 ---
 
@@ -52,12 +53,19 @@ Yang tidak dapat diakses Claude: folder `data/` di GitHub (diblokir untuk akses 
 - Tanda **۞** adalah tanda rub el hizb. Pada mushaf HafidzQuiz ia dipasang di awal tiap thumn jika belum ada [P15, P16].
 - Thumn 1 hizb 1 dimulai di 1:1. Pengguna menyatakan bahwa Al-Baqarah 1–17 "masih termasuk thumn 1" [P7]. Catatan: CSV akhir memulai Thumn 2 di 2:17 (lihat bagian 9, butir 5).
 
+- Pengguna akan **merombak aturan pembagian Hizb dan Juz** [P18]; arahan lebih lanjut menyusul. (Saat ini juz diturunkan dari hizb: `juz = ceil(hizb/2)`.)
+
 ### Mushaf (dari data Excel pengguna)
 - Satu baris Excel = satu **bagian** halaman. `Surah` + `Ayat_End` = ujung bagian itu; awal bagian = setelah ujung bagian sebelumnya [P15].
 - Satu halaman terbagi **5 bagian**, dan pembagiannya boleh jatuh **di tengah ayat** [P15]. Dalam data, halaman 1 dan 2 hanya punya 1 bagian.
 - `Word_Count` (opsional) menandai bagian yang berakhir di tengah ayat: bagian berakhir setelah kata ke-N ayat `Ayat_End`. Dalam data pengguna ayat 2:102 terpotong tiga (kata ke-23, kata ke-51, lalu sisanya), jadi hitungannya **kumulatif dari awal ayat**.
 - Bagian mengalir di dalam baris dan diberi latar berbeda: **merah, kuning, hijau, biru muda, ungu** [P15].
-- Pengguna menulis "Dalam satu halaman mushaf dibagi menjadi 15 halaman" [P15]. Kalimat itu belum dijelaskan (lihat bagian 9, butir 4).
+- Pengguna menulis "Dalam satu halaman mushaf dibagi menjadi 15 halaman" [P15], lalu menjelaskan bahwa yang dimaksud adalah **15 baris setiap halaman** (format Madani) [P18]. Pengguna akan menetapkan sendiri **pemenggalan baris** pada ayat dan indeks kata tertentu; arahannya menyusul.
+
+### Streak, XP, dan pencapaian [P18]
+- **Streak** (runtutan hari belajar) **hangus/tereset** bila runtutan terputus. Meski begitu, pencapaian berbasis streak tetap memakai **streak tertinggi** yang pernah diraih.
+- **Dirham**: pencapaian dihitung dari **total dirham tertinggi yang pernah didapat**.
+- Klarifikasi: pesan pertama menyebut XP sebagai contoh, lalu dikoreksi bahwa yang dimaksud adalah **streak**. **XP tidak hangus**; tidak ada aturan XP tereset.
 
 ### Kata, bacaan, dan contoh soal dari pengguna
 Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
@@ -92,6 +100,7 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 - Layar "lesson complete" menampilkan **waktu** yang dipakai menyelesaikan satu lesson [P13].
 - Popup sebelum memulai: "lesson ke berapa dari berapa" dan **total XP** yang akan didapat [P6].
 - **Penilaian/laporan skor dipindahkan ke server** [P14].
+- **Pencapaian memakai nilai tertinggi**: streak terpanjang dan total dirham tertinggi yang pernah didapat; streak boleh hangus, pencapaian tidak turun [P18].
 
 ### 4.3 Masukan dan administrator
 - Setelah memeriksa jawaban ada tombol **"terlalu mudah"**, **"terlalu sulit"**, dan **"laporkan"**. Masukan dikirim, disimpan, dan dapat ditampilkan sebagai laporan untuk **administrator** [P13].
@@ -115,9 +124,15 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 - Opsi tampil **dua halaman sekaligus** [P16].
 - Keterangan pembagian di pinggir halaman, **pada baris yang sama dengan tanda rub el hizb** [P16].
 - **Satu halaman mushaf harus tampil penuh dari atas ke bawah dalam satu layar tanpa scroll** [P16].
+- Data pembagian halaman kini **lengkap: 604 halaman** [P18].
 
 ### 4.8 Dokumentasi
 - Dibuat `README.md` (penjelasan aplikasi) dan `knowledge.md` (semua informasi dari pengguna). **Keduanya diperbarui setiap kali pengguna meminta sesuatu** [P17].
+
+### 4.9 Rencana fitur (arahan menyusul dari pengguna)
+- Perombakan aturan pembagian **Hizb dan Juz** [P18].
+- **Pemenggalan baris** mushaf (15 baris per halaman) pada ayat dan indeks kata tertentu [P18].
+- Fitur yang memakai **Sheet2 (topik/subtopik)** dan **Sheet3 (tema)** pada Excel [P18].
 
 ---
 
@@ -156,7 +171,14 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 4. **Ulasan rub/nisf**: bukan lesson tambahan di tiap level, melainkan satu level tersendiri di akhir [P13].
 5. **Thumn 8 tidak perlu ulasan** [P14].
 6. **Data thumn yang berlaku** adalah `thumn_fix.csv` buatan pengguna, bukan perbaikan otomatis Claude [P9].
-7. **Data mushaf belum lengkap** dan akan ditambah pengguna [P15].
+7. **Data mushaf belum lengkap** dan akan ditambah pengguna [P15] → **sudah dilengkapi** (604 halaman) di P18.
+8. **Dasar pencapaian** [P18]: streak tertinggi dan total dirham tertinggi yang pernah didapat; yang hangus saat runtutan terputus adalah **streak**, bukan XP (koreksi atas pesan pertama).
+9. **Label thumn pertama** di margin mushaf: `Awal Hizb N` [P18].
+10. **2:48** [P18]: jawaban "2:48 akhirnya" ditafsirkan Claude sebagai **Excel sudah final**: 2:48 mulai di halaman 8 (halaman 7 berakhir di 2:47). Aplikasi mengikuti Excel.
+11. **"15 halaman"** berarti **15 baris per halaman**; pemenggalan baris akan diatur pengguna kemudian [P18].
+12. **Batas Thumn 1/2**: ikuti data yang sudah fiks (`thumn_fix.csv`, Thumn 2 mulai di 2:17) [P18].
+13. **Tanda `///`** di CSV thumn hanya penanda kesalahan pada catatan pengguna sebelumnya: **diabaikan** [P18].
+14. **Perombakan aturan pembagian Hizb dan Juz** akan dijelaskan pengguna kemudian [P18].
 
 ---
 
@@ -176,11 +198,12 @@ Semua ini dapat diubah. Daftar ini membantu agar angka-angka "ajaib" di kode tid
 | Ulasan tidak menahan | Ulasan Hizb/Juz tidak menghalangi thumn berikutnya |
 | Tes lompat | Soal dari thumn yang dilewati di juz yang sama; thumn dilewati tidak membuka chest |
 | Chest | Hanya terbuka bila lesson level itu benar-benar dikerjakan |
-| Streak | Per hari kalender, zona waktu Asia/Jakarta |
-| Label margin mushaf | Thumn pertama hizb diberi label `Awal Hizb N` |
+| Streak | Per hari kalender, zona waktu Asia/Jakarta. Streak yang tampil 0 bila kemarin dan hari ini belum belajar; belajar lagi mulai dari 1; rekor tertinggi disimpan di `streak_peak` |
+| Label margin mushaf | `Awal Hizb N` untuk thumn pertama (**dikonfirmasi pengguna**, P18) |
 | Mode dua halaman | Hanya di layar ≥ 760px; halaman ganjil di kanan, genap di kiri; catatan margin di sisi luar |
 | Penyesuaian layar | Ukuran huruf dicari otomatis agar satu halaman muat; huruf minimal 11px lalu boleh sampai 7px bila terpaksa |
-| Pencapaian profil | Ambang: streak 3/7/14/30/100/365; XP 100/500/1000/5000/10000/30000; thumn 1/4/8/16/48/160/480; dirham 20/100/300/1000 |
+| Pencapaian profil | Ambang: streak 3/7/14/30/100/365; XP 100/500/1000/5000/10000/30000; thumn 1/4/8/16/48/160/480; dirham 20/100/300/1000. Nilai yang dipakai: streak **tertinggi**, XP, thumn selesai, dan **total dirham yang pernah didapat** (`dirham_total`; tidak berkurang bila dirham dibelanjakan, dan sebelum ada toko sama dengan saldo) |
+| Migrasi pencapaian | Pada database lama, `streak_peak` dan `dirham_total` diisi dari nilai saat migrasi (riwayat sebelumnya tidak diketahui) |
 | Admin | Ditentukan lewat daftar nama pengguna `ADMIN_USERS` (awal: `admin`) |
 | `DEV_MODE` | Awalnya `true` selama pengetesan; harus `false` di produksi |
 | Hitung kata (`Word_Count`) | Hanya token yang memuat ≥ 2 huruf dasar; tanda waqaf tidak dihitung |
@@ -191,15 +214,20 @@ Semua ini dapat diubah. Daftar ini membantu agar angka-angka "ajaib" di kode tid
 
 ---
 
-## 9. Pertanyaan dan ambiguitas yang belum terjawab
+## 9. Pertanyaan terbuka dan arahan yang menyusul
 
-1. **Pengumpul Dirham**: apakah pencapaiannya dihitung dari **total dirham yang pernah didapat** (bukan saldo)? Bila nanti ada toko, saldo bisa turun dan pencapaian ikut mundur. *(Ditanyakan di P14, belum dijawab.)*
-2. **Label thumn pertama** di margin mushaf: `Awal Hizb N` atau tulisan lain (misalnya `Hizb N`)? *(Ditanyakan di P16.)*
-3. **Mushaf 2:48**: Excel menaruh halaman 7 berakhir di 2:47 dan halaman 8 sampai 2:50, sedangkan data mushaf Hafs menempatkan 2:48 mulai di halaman 7. Mungkin 2:48 dimulai di dasar halaman 7 dan berlanjut ke halaman 8 (perlu baris `Word_Count`). Menunggu pengecekan pengguna terhadap mushafnya.
-4. **"15 halaman"**: pengguna menulis satu halaman mushaf dibagi menjadi 15 halaman. Dugaan Claude: yang dimaksud **15 baris per halaman** (format Madani). Angka ini tidak dipakai dalam tampilan karena tiap bagian "mengalir saja dalam baris".
-5. **Batas Thumn 1/2**: pernyataan awal "Al-Baqarah 1–17 masih termasuk thumn 1" dibuat saat data lama memulai Thumn 2 di 2:18, sedangkan `thumn_fix.csv` memulai Thumn 2 di 2:17. Aplikasi memakai CSV.
-6. **Tanda `///`** di kolom terakhir `thumn_fix.csv` baris No 166 dan 291: diabaikan; belum diketahui apakah itu penanda yang perlu ditindaklanjuti.
-7. **Cakupan data mushaf**: halaman 42 dan seterusnya (Juz 3 dst.) menunggu data tambahan dari pengguna.
+Tujuh pertanyaan dari versi sebelumnya sudah dijawab pengguna di P18 dan dipindahkan ke bagian 7. Yang masih terbuka atau perlu dicatat:
+
+### Catatan data (tidak mendesak)
+1. **Mushaf 69:8**: Excel menaruhnya di halaman 567, data mushaf Hafs di halaman 566. Aplikasi mengikuti Excel (kemungkinan pagination mushaf pengguna memang berbeda). Informasi saja.
+2. **Sheet3 (tema)**: urutan ayat melanggar sekali pada baris 266–267 (5:90 diikuti 5:84), kemungkinan salah ketik. Sel M178 berisi catatan pengguna "Source misspell" (pada baris tema 4:14).
+3. **Sheet2 (topik)**: 9 baris terakhir (baris 156–164) hanya berisi rumus `=A+1` tanpa ayat; kemungkinan baris yang belum diisi.
+4. **Sheet3**: 36 baris (dari baris 238) tidak punya nomor `No`, dan 33 baris punya sel Surah kosong yang diartikan "sama dengan baris di atas".
+
+### Arahan yang akan diberikan pengguna
+- **A.** Perombakan aturan pembagian Hizb dan Juz.
+- **B.** Pemenggalan baris mushaf (15 baris per halaman) pada ayat dan indeks kata tertentu.
+- **C.** Fitur yang memakai Sheet2 (topik/subtopik) dan Sheet3 (tema).
 
 ---
 
@@ -228,13 +256,22 @@ Data asli tidak mengikuti batas rub standar secara persis (hanya 176 dari 240 th
 - 480 baris valid: hizb/thumn berurutan, semua ayat ada, titik awal naik terus, total 6.236 ayat tercakup.
 - 209 dari 240 thumn ganjil sama dengan awal rub standar; berbeda di 151 entri dari perbaikan otomatis Claude sebelumnya.
 
-### `Mushaf_Page_Division.xlsx`
+### `Mushaf_Page_Division.xlsx` (versi awal, 41 halaman; digantikan di P18)
 - 197 baris, halaman 1–41 (Juz 1 dan 2 lengkap), tanpa lubang; halaman 1–2 satu bagian, sisanya lima bagian.
 - Akhir tiap halaman cocok dengan data mushaf Hafs (Madani, 604 halaman). 258 dari 259 ayat terpetakan ke halaman yang sama dengan data Hafs; satu selisih di 2:48 (bagian 9, butir 3).
 - 19 baris `Word_Count` (18 ayat berbeda; 2:102 terpotong tiga), semuanya kumulatif.
 
 ### Rujukan luar yang dipakai Claude untuk verifikasi
 Paket npm `quran-meta` (daftar rub dan halaman mushaf Hafs) dan data hizb dari QUL/Tarteel (Hizb 1 mencakup 1:1–2:74). Keduanya bukan masukan dari pengguna dan hanya dipakai sebagai pembanding.
+
+### `Mushaf_Page_Division_1.xlsx` (P18)
+- **Sheet1**: 604 halaman dan 3.012 bagian (halaman 1–2: 1 bagian; 602 halaman lain: 5 bagian), nilai langsung tanpa rumus, berakhir tepat di 114:6. 132 baris `Word_Count` (bagian terpotong di tengah ayat), semuanya kumulatif.
+- **Validasi terhadap data mushaf Hafs**: dari 6.236 ayat, 6.234 berhalaman sama. Selisih: **2:48** (Excel hal. 8, Hafs hal. 7; dikonfirmasi pengguna, bagian 7 butir 10) dan **69:8** (Excel hal. 567, Hafs hal. 566). Tidak ada ayat yang terbelah antar halaman.
+- **Validasi terhadap teks ayat nyata** (paket `quran-json`, hanya untuk uji lokal): semua 132 `Word_Count` lebih kecil dari jumlah kata ayatnya; titik potong berada di 17%–87% panjang ayat.
+- **Navigasi**: juz 1 → hal. 1, juz 2 → 22, juz 3 → 42, juz 30 → 582, 114:6 → 604; seluruh 480 awal thumn memiliki halaman.
+- **Sheet2** `No, Surah, Ayah, Topic, Subtopic`: 163 baris, 154 berisi ayat (2:6 sampai 5:110; per surah: 2:60, 3:38, 4:33, 5:23). Tiap baris berisi **tepat satu** dari Topic (33 baris) atau Subtopic (121 baris). Contoh: 2:8 subtopik "Golongan Munafik".
+- **Sheet3** `No, Surah, Ayat, Theme`: 272 baris, semuanya bertema (2:6 sampai 5:119; per surah: 2:116, 3:55, 4:64, 5:37). Contoh: 2:7 "Penjelasan mengenai beberapa sifat dan keadaan orang-orang munafik …".
+- Sheet2 dan Sheet3 belum dipakai aplikasi; menunggu arahan pengguna (bagian 9, arahan C).
 
 ---
 
@@ -259,6 +296,7 @@ Paket npm `quran-meta` (daftar rub dan halaman mushaf Hafs) dan data hizb dari Q
 | P15 | Menu Mushaf dari data Excel (5 bagian berwarna, potongan di tengah ayat, ۞, navigasi) | `mushaf.json`, `xlsx_ke_mushaf.php`, `mushaf.php`, tampilan Mushaf |
 | P16 | Opsi dua halaman; keterangan pembagian di margin; satu halaman penuh dalam satu layar | Diterapkan dan diuji di 11 ukuran layar |
 | P17 | Buat `README.md` dan `knowledge.md`; perbarui setiap ada permintaan | Dokumen ini dan `README.md` dibuat |
+| P18 | Menjawab 7 pertanyaan terbuka; mengunggah Excel mushaf lengkap (3 sheet); klarifikasi bahwa yang hangus adalah streak (bukan XP) | `mushaf.json` 604 halaman; pencapaian memakai streak tertinggi dan total dirham tertinggi; streak yang tampil hangus saat runtutan terputus; sheet topik/tema dianalisis; dokumen diperbarui |
 
 ---
 
