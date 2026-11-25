@@ -1,7 +1,7 @@
 <?php
 // Generator soal. Soal diambil dari ayat $src; pengecoh dari seluruh thumn ($pool).
 // Struktur: 1 thumn = 8 level. Dasar (1-3) -> Menengah (4-5) -> Mahir (6-8). Level 8 = ujian akhir thumn.
-require_once __DIR__ . '/quran_json_parser.php';
+require_once ROOT . '/quran_json_parser.php';
 const ALM = "\u{061C}";
 const LET = '\x{0621}-\x{064A}\x{0671}';
 const HAR = '\x{064B}-\x{0652}';

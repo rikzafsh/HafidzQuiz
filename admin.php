@@ -1,8 +1,11 @@
 <?php
-// Laporan masukan pengguna ("terlalu mudah", "terlalu sulit", "laporkan"). Hanya untuk akun di ADMIN_USERS (core.php).
-require __DIR__ . '/core.php';
+// Laporan masukan pengguna ("terlalu mudah", "terlalu sulit", "laporkan"). Hanya untuk akun di ADMIN_USERS (src/bootstrap.php).
+require __DIR__ . '/src/bootstrap.php';
+courseLoad(courseGet('tahfidz'));   // label unit Tahfidz (hizb/thumn) butuh data course Tahfidz
+function courseName($id) { return courseGet($id)['name'] ?? $id; }
 function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-function unitLabel($id) {
+function unitLabel($course, $id) {
+    if ($course !== 'tahfidz') return "Unit $id";
     if ($id >= 2001) return 'Ulasan Juz ' . ($id - 2000);
     if ($id >= 1001) return 'Ulasan Hizb ' . ($id - 1000);
     $T = thumns(); return isset($T[$id]) ? "Hizb {$T[$id]['hizb_number']} · Thumn {$T[$id]['thumn']}" : "Unit $id";
@@ -13,34 +16,35 @@ $me = null;
 if (!empty($_SESSION['uid'])) { $s = db()->prepare('SELECT id, username FROM users WHERE id=?'); $s->execute([$_SESSION['uid']]); $me = $s->fetch(); }
 if (!$me || !isAdmin($me)) {
     http_response_code(403); header('Content-Type: text/html; charset=utf-8');
-    exit('<!doctype html><meta charset="utf-8"><body style="font:16px system-ui;padding:24px"><p>Akses ditolak. Masuk dulu di <a href="app.php">aplikasi</a> dengan akun yang terdaftar di <code>ADMIN_USERS</code> (core.php), lalu buka halaman ini lagi.</p>');
+    exit('<!doctype html><meta charset="utf-8"><body style="font:16px system-ui;padding:24px"><p>Akses ditolak. Masuk dulu di <a href="app.php">aplikasi</a> dengan akun yang terdaftar di <code>ADMIN_USERS</code> (src/bootstrap.php), lalu buka halaman ini lagi.</p>');
 }
 $_SESSION['csrf'] ??= bin2hex(random_bytes(16));
-$f = ['kind' => $_GET['kind'] ?? '', 'qkind' => $_GET['qkind'] ?? '', 'res' => $_GET['res'] ?? '0', 'unit' => $_GET['unit'] ?? ''];
+$f = ['kind' => $_GET['kind'] ?? '', 'qkind' => $_GET['qkind'] ?? '', 'res' => $_GET['res'] ?? '0', 'unit' => $_GET['unit'] ?? '', 'course' => $_GET['course'] ?? ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {   // tandai sudah/belum ditangani
     if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) { http_response_code(400); exit('Token tidak valid.'); }
     db()->prepare('UPDATE feedback SET resolved = 1 - resolved WHERE id=?')->execute([(int)($_POST['id'] ?? 0)]);
-    $keep = array_intersect_key($_POST, array_flip(['kind', 'qkind', 'res', 'unit'])); header('Location: admin.php' . ($keep ? '?' . http_build_query($keep) : '')); exit;
+    $keep = array_intersect_key($_POST, array_flip(['kind', 'qkind', 'res', 'unit', 'course'])); header('Location: admin.php' . ($keep ? '?' . http_build_query($keep) : '')); exit;
 }
 
 $w = []; $p = [];
 if (in_array($f['kind'], ['easy', 'hard', 'report'], true)) { $w[] = 'f.kind=?'; $p[] = $f['kind']; }
 if ($f['qkind'] !== '') { $w[] = 'f.qkind=?'; $p[] = $f['qkind']; }
 if ($f['unit'] !== '') { $w[] = 'f.unit=?'; $p[] = (int)$f['unit']; }
+if ($f['course'] !== '') { $w[] = 'f.course=?'; $p[] = $f['course']; }
 if ($f['res'] === '0' || $f['res'] === '1') { $w[] = 'f.resolved=?'; $p[] = (int)$f['res']; }
 $where = $w ? 'WHERE ' . implode(' AND ', $w) : '';
 $q = db()->prepare("SELECT f.*, u.username FROM feedback f LEFT JOIN users u ON u.id=f.user_id $where ORDER BY f.id DESC LIMIT 300"); $q->execute($p); $rows = $q->fetchAll();
 
 if (($_GET['export'] ?? '') === 'csv') {   // ekspor CSV (mengikuti filter)
     header('Content-Type: text/csv; charset=utf-8'); header('Content-Disposition: attachment; filename="masukan-hafidzquiz.csv"'); echo "\xEF\xBB\xBF";
-    $o = fopen('php://output', 'w'); fputcsv($o, ['id', 'waktu', 'pengguna', 'jenis', 'unit', 'level', 'lesson', 'tipe_soal', 'alasan', 'catatan', 'dijawab_benar', 'jawaban_pengguna', 'judul_soal', 'ayat', 'selesai'], ',', '"', '');
-    foreach ($rows as $r) { $j = json_decode($r['qjson'], true) ?: []; fputcsv($o, [$r['id'], $r['created_at'], $r['username'], KIND_LBL[$r['kind']] ?? $r['kind'], unitLabel((int)$r['unit']), $r['level'], $r['lesson'], $r['qkind'], $r['reason'], $r['note'], $r['correct'] ? 'ya' : 'tidak', $r['ua'], $j['title'] ?? '', $j['full'] ?? '', $r['resolved'] ? 'ya' : 'tidak'], ',', '"', ''); }
+    $o = fopen('php://output', 'w'); fputcsv($o, ['id', 'waktu', 'pengguna', 'jenis', 'kursus', 'unit', 'level', 'lesson', 'tipe_soal', 'alasan', 'catatan', 'dijawab_benar', 'jawaban_pengguna', 'judul_soal', 'ayat', 'selesai'], ',', '"', '');
+    foreach ($rows as $r) { $j = json_decode($r['qjson'], true) ?: []; fputcsv($o, [$r['id'], $r['created_at'], $r['username'], KIND_LBL[$r['kind']] ?? $r['kind'], courseName($r['course'] ?? 'tahfidz'), unitLabel($r['course'] ?? 'tahfidz', (int)$r['unit']), $r['level'], $r['lesson'], $r['qkind'], $r['reason'], $r['note'], $r['correct'] ? 'ya' : 'tidak', $r['ua'], $j['title'] ?? '', $j['full'] ?? '', $r['resolved'] ? 'ya' : 'tidak'], ',', '"', ''); }
     exit;
 }
 $tot = db()->query("SELECT kind, COUNT(*) c FROM feedback GROUP BY kind")->fetchAll(PDO::FETCH_KEY_PAIR);
 $byQ = db()->query("SELECT qkind, SUM(kind='easy') e, SUM(kind='hard') h, SUM(kind='report') r, COUNT(*) n FROM feedback GROUP BY qkind ORDER BY (h+r) DESC, n DESC")->fetchAll();
-$hot = db()->query("SELECT unit, level, lesson, SUM(kind='easy') e, SUM(kind='hard') h, SUM(kind='report') r FROM feedback GROUP BY unit, level, lesson HAVING h+r>0 ORDER BY h+r DESC LIMIT 10")->fetchAll();
+$hot = db()->query("SELECT course, unit, level, lesson, SUM(kind='easy') e, SUM(kind='hard') h, SUM(kind='report') r FROM feedback GROUP BY course, unit, level, lesson HAVING h+r>0 ORDER BY h+r DESC LIMIT 10")->fetchAll();
 $qs = http_build_query(array_filter($f, fn($v) => $v !== ''));
 ?><!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Laporan Masukan · HafidzQuiz</title>
@@ -67,10 +71,11 @@ button{cursor:pointer}.ai{width:16px;height:16px;vertical-align:-3px}tr.res{opac
 <table><tr><th>Tipe soal</th><th>Mudah</th><th>Sulit</th><th>Laporan</th><th>Total</th></tr>
 <?php foreach ($byQ as $r): ?><tr><td><?= h($r['qkind'] ?: '(tidak diketahui)') ?></td><td><?= $r['e'] ?></td><td><?= $r['h'] ?></td><td><?= $r['r'] ?></td><td><?= $r['n'] ?></td></tr><?php endforeach; if (!$byQ) echo '<tr><td colspan="5" class="mut">Belum ada masukan.</td></tr>'; ?></table>
 <h2>Lesson paling bermasalah</h2>
-<table><tr><th>Unit</th><th>Level · Lesson</th><th>Mudah</th><th>Sulit</th><th>Laporan</th></tr>
-<?php foreach ($hot as $r): ?><tr><td><a href="?unit=<?= (int)$r['unit'] ?>&res=all"><?= h(unitLabel((int)$r['unit'])) ?></a></td><td><?= $r['level'] ? "Level {$r['level']} · Lesson {$r['lesson']}" : 'Tes lompat' ?></td><td><?= $r['e'] ?></td><td><?= $r['h'] ?></td><td><?= $r['r'] ?></td></tr><?php endforeach; if (!$hot) echo '<tr><td colspan="5" class="mut">—</td></tr>'; ?></table>
+<table><tr><th>Kursus · Unit</th><th>Level · Lesson</th><th>Mudah</th><th>Sulit</th><th>Laporan</th></tr>
+<?php foreach ($hot as $r): ?><tr><td><?= h(courseName($r['course'] ?? 'tahfidz')) ?> · <a href="?course=<?= h($r['course']) ?>&unit=<?= (int)$r['unit'] ?>&res=all"><?= h(unitLabel($r['course'] ?? 'tahfidz', (int)$r['unit'])) ?></a></td><td><?= $r['level'] ? "Level {$r['level']} · Lesson {$r['lesson']}" : 'Tes lompat' ?></td><td><?= $r['e'] ?></td><td><?= $r['h'] ?></td><td><?= $r['r'] ?></td></tr><?php endforeach; if (!$hot) echo '<tr><td colspan="5" class="mut">—</td></tr>'; ?></table>
 <h2>Daftar masukan <span class="mut">(<?= count($rows) ?> ditampilkan)</span></h2>
 <form class="f" method="get">
+ <select name="course"><option value="">Semua kursus</option><?php foreach (courseRegistry() as $cid => $cc) echo '<option value="' . h($cid) . '"' . ($f['course'] === $cid ? ' selected' : '') . '>' . h($cc['name']) . '</option>'; ?></select>
  <select name="kind"><option value="">Semua jenis</option><?php foreach (KIND_LBL as $k => $l) echo '<option value="' . $k . '"' . ($f['kind'] === $k ? ' selected' : '') . '>' . h($l) . '</option>'; ?></select>
  <select name="qkind"><option value="">Semua tipe soal</option><?php foreach ($byQ as $r) if ($r['qkind'] !== '') echo '<option' . ($f['qkind'] === $r['qkind'] ? ' selected' : '') . '>' . h($r['qkind']) . '</option>'; ?></select>
  <select name="res"><option value="0"<?= $f['res'] === '0' ? ' selected' : '' ?>>Belum ditangani</option><option value="1"<?= $f['res'] === '1' ? ' selected' : '' ?>>Sudah ditangani</option><option value="all"<?= $f['res'] === 'all' ? ' selected' : '' ?>>Semua</option></select>
@@ -80,12 +85,12 @@ button{cursor:pointer}.ai{width:16px;height:16px;vertical-align:-3px}tr.res{opac
 <?php foreach ($rows as $r): $j = json_decode($r['qjson'], true) ?: []; ?>
 <tr class="<?= $r['resolved'] ? 'res' : '' ?>"><td><?= h($r['created_at']) ?><br><span class="mut"><?= h($r['username']) ?></span></td>
 <td><span class="k <?= h($r['kind']) ?>"><?= h(KIND_LBL[$r['kind']] ?? $r['kind']) ?></span><?php if ($r['reason'] || $r['note']): ?><br><b><?= h($r['reason']) ?></b><br><?= h($r['note']) ?><?php endif; ?></td>
-<td><?= h(unitLabel((int)$r['unit'])) ?><br><span class="mut"><?= $r['level'] ? "Level {$r['level']} · Lesson {$r['lesson']}" : 'Tes lompat' ?></span></td>
+<td><?= h(courseName($r['course'] ?? 'tahfidz')) ?> · <?= h(unitLabel($r['course'] ?? 'tahfidz', (int)$r['unit'])) ?><br><span class="mut"><?= $r['level'] ? "Level {$r['level']} · Lesson {$r['lesson']}" : 'Tes lompat' ?></span></td>
 <td><b><?= h($j['title'] ?? '') ?></b> <span class="mut">[<?= h($r['qkind']) ?>] · pengguna menjawab <?= $r['correct'] ? 'benar' : 'salah' ?></span>
  <?php if (!empty($j['full'])): ?><div class="ar"><?= nl2br(h($j['full'])) ?></div><?php endif; ?>
  <details><summary class="mut">Detail soal & jawaban</summary><pre><?= h(json_encode(['jawaban_pengguna' => json_decode($r['ua'], true), 'soal' => $j], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)) ?></pre></details></td>
 <td><form method="post"><input type="hidden" name="csrf" value="<?= h($_SESSION['csrf']) ?>"><input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
- <?php foreach (['kind', 'qkind', 'res', 'unit'] as $k) if ($f[$k] !== '') echo '<input type="hidden" name="' . $k . '" value="' . h($f[$k]) . '">'; ?>
+ <?php foreach (['kind', 'qkind', 'res', 'unit', 'course'] as $k) if ($f[$k] !== '') echo '<input type="hidden" name="' . $k . '" value="' . h($f[$k]) . '">'; ?>
  <button><?= $r['resolved'] ? 'Buka lagi' : 'Selesai' ?></button></form></td></tr>
 <?php endforeach; if (!$rows) echo '<tr><td colspan="5" class="mut">Tidak ada masukan yang cocok.</td></tr>'; ?></table>
 </div></body></html>

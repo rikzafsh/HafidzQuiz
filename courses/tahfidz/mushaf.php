@@ -1,11 +1,11 @@
 <?php
 // Mushaf: halaman disusun dari data/mushaf.json (hasil xlsx_ke_mushaf.php). Tiap halaman = beberapa bagian (5 warna) yang mengalir di dalam baris.
-require_once __DIR__ . '/quran_json_parser.php';
+require_once ROOT . '/quran_json_parser.php';
 
 // Daftar bagian berurutan, lengkap dengan posisi awal [surah, ayat, kata-mulai] dan akhir [surah, ayat, kata-akhir|null].
 function mushafSections(): array {
     static $S; if ($S !== null) return $S;
-    $S = []; $f = __DIR__ . '/data/mushaf.json'; if (!is_file($f)) return $S;
+    $S = []; $f = ROOT . '/data/mushaf.json'; if (!is_file($f)) return $S;
     $d = json_decode(file_get_contents($f), true); $prev = null;
     foreach ($d['pages'] ?? [] as $pg) foreach ($pg['sections'] as $i => $sc) {
         if (!$prev) $start = [1, 1, 1];
@@ -38,7 +38,7 @@ function thumnIndexAt(int $s, int $a): ?int {   // thumn yang memuat ayat s:a
 }
 function surahNames(): array {   // 114 nama surah; di-cache setelah semua file surah tersedia
     static $N; if ($N) return $N;
-    $f = __DIR__ . '/storage/surah_names.json';
+    $f = ROOT . '/storage/surah_names.json';
     if (is_file($f) && is_array($c = json_decode(file_get_contents($f), true)) && count($c) === 114) return $N = $c;
     $N = []; $all = true;
     for ($s = 1; $s <= 114; $s++) {

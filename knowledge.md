@@ -3,7 +3,7 @@
 Catatan semua informasi, pengetahuan, kebutuhan, dan keputusan yang diberikan pengguna selama pengembangan HafidzQuiz. Dipakai sebagai ingatan proyek: siapa pun (atau sesi berikutnya) yang melanjutkan pengembangan bisa memahami *mengapa* aplikasi dibuat begini.
 
 > **Aturan pemeliharaan:** setiap kali pengguna meminta sesuatu, dokumen ini dan `README.md` diperbarui (permintaan baru dicatat di bagian 11, informasi baru masuk ke bagian yang sesuai, pertanyaan yang terjawab dipindahkan dari bagian 9).
-> Terakhir diperbarui: 18 November 2026 (setelah permintaan P18).
+> Terakhir diperbarui: 25 November 2026 (setelah permintaan P19).
 
 **Cara membaca:** bagian 1–7 adalah sumber kebenaran dari pengguna. Bagian 8 berisi asumsi Claude yang **belum dikonfirmasi** dan boleh diubah kapan saja. Rujukan `[P#]` mengarah ke riwayat permintaan di bagian 11.
 
@@ -16,7 +16,7 @@ Catatan semua informasi, pengetahuan, kebutuhan, dan keputusan yang diberikan pe
 | Nama | **HafidzQuiz** |
 | Tujuan | Aplikasi kuis seperti Duolingo untuk membantu **menghafal Al-Qur'an** [P1] |
 | Platform | Web, fleksibel dan responsif: mudah diakses di PC maupun HP [P1] |
-| Rencana course lain | Hafalan **matan manzumah**, **syair**, dan belajar **aksara**. Tahap ini hanya Al-Qur'an [P1] |
+| Course (kursus) | Rencana awal: hafalan **matan manzumah**, **syair**, dan belajar **aksara**; tahap awal hanya Al-Qur'an [P1]. Sejak P19 aplikasi **multi-kursus**: course yang ada bernama **"Tahfidz"** (hafalan Al-Qur'an), ditambah **"Tuḥfatulaṭfāl"** (hafalan matan manzumah Tuḥfatulaṭfāl; materi dan detail teknisnya menyusul) [P19] |
 | Titik awal | Repo `https://github.com/rikzafsh/HafidzQuiz` berisi kuis dummy (PHP + JS) yang dikembangkan menjadi aplikasi ala Duolingo [P1] |
 | Pembagian materi | Per **thumn**, sesuai `thumn.json` [P1] |
 | Akun | Wajib login untuk menyimpan data dan capaian/XP [P2] |
@@ -134,6 +134,13 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 - **Pemenggalan baris** mushaf (15 baris per halaman) pada ayat dan indeks kata tertentu [P18].
 - Fitur yang memakai **Sheet2 (topik/subtopik)** dan **Sheet3 (tema)** pada Excel [P18].
 
+
+### 4.10 Multi-kursus [P19]
+- Pengguna dapat **meng-enroll dirinya ke course yang belum pernah dipelajari** (referensi: pemilih kursus Duolingo, dropdown "MY COURSES" dengan daftar kursus dan tombol "Add a new course").
+- Course yang sudah ada diberi nama **"Tahfidz"**.
+- Ditambahkan course baru **"Tuḥfatulaṭfāl"** untuk hafalan matan manzumah Tuḥfatulaṭfāl; **detail teknisnya akan diberikan pengguna nanti** (sementara hanya kerangka).
+- Boleh **merestrukturisasi direktori proyek** agar pengembangan ke depan mudah (pengguna meminta daftar berkas yang berubah dan struktur direktorinya).
+
 ---
 
 ## 5. Preferensi visual dan referensi
@@ -150,6 +157,7 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 | Screenshot sidebar dan tab bawah Duolingo, halaman profil [P14] | Menu responsif dan halaman profil (statistik, pencapaian) |
 | "Ubah ikon dari emoji menjadi SVG gaya flat design" [P14] | Semua ikon SVG flat, tanpa emoji |
 | Warna bagian mushaf [P15] | Merah, kuning, hijau, biru muda, ungu |
+| Screenshot dropdown "MY COURSES" Duolingo (daftar kursus + XP kursus di chip atas, tombol "Add a new course") [P19] | Tombol kursus di bilah atas (ikon kursus + XP kursus + panah), dropdown **"KURSUS SAYA"**, dan tombol **"Tambah kursus baru"** yang membuka katalog |
 
 ---
 
@@ -160,6 +168,7 @@ Contoh kata mirip yang sulit dibedakan, untuk soal level akhir [P10]:
 | Thumn: JSON atau aplikasi membaca CSV? [P9] | JSON dibaca aplikasi; CSV tetap sumber yang diedit; skrip `csv_ke_thumn.php` mengonversi dan memvalidasi | `json_decode` bawaan dan cepat; CSV menambah risiko (pemisah, BOM, format Excel regional) |
 | Mushaf: Excel langsung atau JSON? [P15] | JSON dibaca aplikasi; skrip `xlsx_ke_mushaf.php` membaca `.xlsx` langsung, memvalidasi, lalu menulis `data/mushaf.json` | PHP tidak punya pembaca xlsx bawaan; nilai tersimpan rumus Excel dipakai, dan rumus sederhana dihitung ulang bila perlu |
 | Bentuk teknis aplikasi | PHP + SQLite + JS vanilla, tanpa langkah build | Selaras dengan repo asal (PHP) dan mudah di-hosting |
+| Struktur direktori multi-kursus [P19] | Dibagi **platform** (`src/`, `api.php`, `assets/js/{core,shell,quiz,icons,boot}.js`) dan **kursus** (`courses/<id>/` + `assets/js/courses/<id>.js`). Kursus terdaftar otomatis lewat manifest `course.php`; `api.php` menjadi router tipis | Kursus baru tidak perlu mengubah kode platform; kode kursus hanya dimuat saat dipakai. Panduan: `courses/README.md` |
 
 ---
 
@@ -210,6 +219,11 @@ Semua ini dapat diubah. Daftar ini membantu agar angka-angka "ajaib" di kode tid
 | Spanduk surah | Dengan basmalah kecuali Al-Fatihah dan At-Taubah |
 | Entri thumn tidak konsisten | Dikecualikan lewat rantai naik terpanjang, ayatnya digabung ke thumn sebelumnya, dan ditandai di peta |
 | Retensi sesi kuis | Sesi di server dihapus setelah 24 jam |
+| Pengguna baru dan lama | Pengguna baru otomatis mengikuti Tahfidz (`DEFAULT_COURSE`). Pengguna lama otomatis didaftarkan ke Tahfidz, dan XP lamanya menjadi XP Tahfidz [P19] |
+| Cakupan data multi-kursus | **Global**: XP total, streak, dirham, rekor streak, total dirham, pencapaian lintas kursus. **Per kursus**: progres, sesi kuis, masukan, XP kursus. Streak dihitung dari belajar di kursus mana pun [P19] |
+| Pendaftaran kursus | Mendaftar langsung menjadikan kursus itu aktif; kursus berstatus `draft` boleh diikuti dan menampilkan "segera hadir" [P19] |
+| Penamaan | Nama tampilan **"Tuḥfatulaṭfāl"** (dengan tanda diakritik), id teknis `tuhfatulatfal`; ikon gulungan (`scroll`), warna ungu; urutan: Tahfidz lalu Tuḥfatulaṭfāl [P19] |
+| Menu per kursus | Menu mengikuti kursus aktif (Tahfidz: Belajar, Mushaf, Profil; Tuḥfatulaṭfāl: Belajar, Profil). Pencapaian "Penghafal" dan tombol "Muroja'ah bebas" milik Tahfidz [P19] |
 | Persyaratan | PHP 8.1+ (diuji 8.3), `pdo_sqlite`, `mbstring`; `zip` hanya untuk konverter xlsx |
 
 ---
@@ -228,6 +242,7 @@ Tujuh pertanyaan dari versi sebelumnya sudah dijawab pengguna di P18 dan dipinda
 - **A.** Perombakan aturan pembagian Hizb dan Juz.
 - **B.** Pemenggalan baris mushaf (15 baris per halaman) pada ayat dan indeks kata tertentu.
 - **C.** Fitur yang memakai Sheet2 (topik/subtopik) dan Sheet3 (tema).
+- **D.** Detail teknis course **Tuḥfatulaṭfāl** (materi matan, format belajar, tipe soal, struktur unit/level) [P19].
 
 ---
 
@@ -297,6 +312,7 @@ Paket npm `quran-meta` (daftar rub dan halaman mushaf Hafs) dan data hizb dari Q
 | P16 | Opsi dua halaman; keterangan pembagian di margin; satu halaman penuh dalam satu layar | Diterapkan dan diuji di 11 ukuran layar |
 | P17 | Buat `README.md` dan `knowledge.md`; perbarui setiap ada permintaan | Dokumen ini dan `README.md` dibuat |
 | P18 | Menjawab 7 pertanyaan terbuka; mengunggah Excel mushaf lengkap (3 sheet); klarifikasi bahwa yang hangus adalah streak (bukan XP) | `mushaf.json` 604 halaman; pencapaian memakai streak tertinggi dan total dirham tertinggi; streak yang tampil hangus saat runtutan terputus; sheet topik/tema dianalisis; dokumen diperbarui |
+| P19 | Fitur multi-kursus (pengguna bisa meng-enroll ke kursus baru, pemilih kursus ala Duolingo); course lama bernama "Tahfidz"; tambah course "Tuḥfatulaṭfāl" (detail menyusul); restrukturisasi direktori; kirim daftar berkas yang berubah dan struktur direktori | Arsitektur platform + course (`src/`, `courses/`), migrasi database otomatis (`progress` per kursus, tabel `enrollments`), dropdown kursus + katalog, kerangka Tuḥfatulaṭfāl (draft), `courses/README.md`; diuji dengan database format lama dan di browser |
 
 ---
 

@@ -1,13 +1,14 @@
 <?php
 // Mengubah data pembagian halaman mushaf (Excel .xlsx, atau .csv) menjadi data/mushaf.json yang dibaca aplikasi, sambil memvalidasi.
-//   php xlsx_ke_mushaf.php [file.xlsx|file.csv]        (bawaan: data/Mushaf_Page_Division.xlsx)
+//   php courses/tahfidz/tools/xlsx_ke_mushaf.php [file.xlsx|file.csv]        (bawaan: data/Mushaf_Page_Division.xlsx)
 // Kolom: No | Page | Section | Surah | Ayat_End | Word_Count
 //   Satu baris = satu bagian; Surah+Ayat_End = ujung bagian itu. Word_Count (opsional) = bagian berakhir SETELAH kata ke-N dari ayat Ayat_End
 //   (dihitung kumulatif dari awal ayat; tanda waqaf bukan kata). Kosong = bagian berakhir di akhir ayat.
 // Kolom Page/Section boleh berupa rumus; nilai tersimpan Excel dipakai, dan rumus sederhana (=B4+1, =C4) dihitung ulang bila tidak ada nilainya.
-require __DIR__ . '/core.php';   // AYAT_COUNT, surah()
-require_once __DIR__ . '/quran_json_parser.php';
-$src = $argv[1] ?? __DIR__ . '/data/Mushaf_Page_Division.xlsx'; $dst = __DIR__ . '/data/mushaf.json';
+require dirname(__DIR__, 3) . '/src/bootstrap.php';   // platform
+courseLoad(courseGet('tahfidz'));                       // kode & data course Tahfidz (AYAT_COUNT, surah(), thumns(), ...)
+require_once ROOT . '/quran_json_parser.php';
+$src = $argv[1] ?? ROOT . '/data/Mushaf_Page_Division.xlsx'; $dst = ROOT . '/data/mushaf.json';
 if (!is_file($src)) exit("File tidak ditemukan: $src\n");
 
 function xmlText($s) { return html_entity_decode($s, ENT_QUOTES | ENT_XML1, 'UTF-8'); }

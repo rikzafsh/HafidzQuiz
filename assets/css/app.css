@@ -238,3 +238,28 @@ a.btn,.pact .btn{display:flex;align-items:center;justify-content:center;gap:10px
 @media(max-width:560px){.btn.navb{width:44px;padding:0;justify-content:center}.btn.navb .lbl{display:none}.mtool{gap:6px}.mtool input{width:62px}}
 
 .sc2 small.sub{display:block;font-size:11px;opacity:.85}
+
+/* ===== Multi-kursus: pemilih kursus (dropdown ala Duolingo), katalog, dan profil ===== */
+.chip.course{border:0;cursor:pointer;gap:6px;background:var(--soft);color:var(--fg)}
+.chip.course:hover,.chip.course[aria-expanded=true]{background:var(--sel)}
+.chip.course .i:last-child{opacity:.7}
+.cdd{position:fixed;z-index:70;width:min(300px,calc(100vw - 16px));background:var(--bg);border:2px solid var(--line);border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.35);overflow:hidden}
+.cdh{padding:12px 16px 8px;font-size:12px;font-weight:800;letter-spacing:.8px;color:var(--mut)}
+.cdl{max-height:min(46vh,320px);overflow:auto;padding:0 6px 6px}
+.cdi{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-radius:12px;padding:9px 10px;cursor:pointer;text-align:left;font-weight:700}
+.cdi:hover{background:var(--soft)}.cdi.on{background:var(--sel);color:var(--selb)}.cdi>span:not(.i){flex:1}
+.cdi .i,.cda .i{flex:none}
+.cda{display:flex;align-items:center;gap:12px;width:100%;border:0;border-top:2px solid var(--line);background:none;padding:12px 16px;cursor:pointer;font-weight:800;text-align:left}
+.cda:hover{background:var(--soft)}
+.mnv.cat{width:min(520px,100%)}
+.clist{display:grid;gap:10px;margin:6px 0 14px}
+.ccard{display:flex;align-items:center;gap:14px;border:2px solid var(--line);border-radius:14px;padding:12px}
+.ccard .cbody{flex:1;min-width:0}.ccard b{display:block;font-size:18px}.ccard p{margin:4px 0 6px;font-size:14px}
+.ccard .btn{width:auto;flex:none;padding:10px 14px;font-size:13px}
+.cbadge{display:inline-block;background:var(--soft);border-radius:8px;padding:1px 8px;font-size:12px;font-weight:800;color:var(--mut)}
+@media(max-width:480px){.ccard{flex-wrap:wrap}.ccard .btn{width:100%}}
+.mycourses{display:grid;gap:10px}
+.mc{display:flex;align-items:center;gap:12px;border:2px solid var(--line);border-radius:14px;padding:10px 12px}
+.mc.on{border-color:var(--selb);background:var(--sel)}.mc>div{flex:1}.mc b{display:block}.mc small{color:var(--mut)}
+.mxp{display:inline-flex;align-items:center;gap:4px;font-weight:800}
+.soon{text-align:center;padding-top:8vh}.soon .btn{max-width:320px;margin:18px auto 0}

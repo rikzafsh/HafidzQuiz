@@ -1,16 +1,17 @@
 <?php
 // Diagnostik & usulan perbaikan data/thumn.json.
-//   php cek_thumn.php        -> hanya yang bermasalah (+ menulis data/thumn.fixed.json bila ada perbaikan pasti)
-//   php cek_thumn.php all    -> tampilkan semua thumn
+//   php courses/tahfidz/tools/cek_thumn.php        -> hanya yang bermasalah (+ menulis data/thumn.fixed.json bila ada perbaikan pasti)
+//   php courses/tahfidz/tools/cek_thumn.php all    -> tampilkan semua thumn
 // Atau buka di browser (?all=1). Periksa data/thumn.fixed.json, lalu ganti nama menjadi thumn.json. HAPUS file ini setelah selesai.
 if (PHP_SAPI !== 'cli') header('Content-Type: text/plain; charset=utf-8');
-require __DIR__ . '/core.php';
+require dirname(__DIR__, 3) . '/src/bootstrap.php';   // platform
+courseLoad(courseGet('tahfidz'));                       // kode & data course Tahfidz (AYAT_COUNT, surah(), thumns(), ...)
 $all = isset($_GET['all']) || (($argv[1] ?? '') === 'all');
 $T = thumns(); $n = count($T);
 
 function raw($s) { // ayah => halaman, dari data mentah
     static $c = [];
-    if (!isset($c[$s])) { $f = __DIR__ . "/data/$s.json"; $c[$s] = [];
+    if (!isset($c[$s])) { $f = ROOT . "/data/$s.json"; $c[$s] = [];
         if (is_file($f)) foreach (json_decode(file_get_contents($f), true) ?: [] as $a) $c[$s][(int)$a['ayah']] = (int)($a['page'] ?? 0); }
     return $c[$s];
 }
@@ -69,7 +70,7 @@ if ($fix) {
         if (isset($fix[$i])) [$o['sura_number'], $o['starting_aya']] = $fix[$i];
         $pos = $o['sura_number'] * 1000 + $o['starting_aya']; if ($pos <= $prev) $viol++; $prev = $pos; $out[] = $o;
     }
-    file_put_contents(__DIR__ . '/data/thumn.fixed.json', json_encode($out, JSON_PRETTY_PRINT));
+    file_put_contents(ROOT . '/data/thumn.fixed.json', json_encode($out, JSON_PRETTY_PRINT));
     echo "\nDitulis data/thumn.fixed.json (" . count($fix) . " perbaikan pasti). Pelanggaran urutan yang tersisa di file itu: $viol" . ($manual ? " (sisa $manual entri perlu dipilih manual)" : '') . "\n";
 }
 echo "\nTotal ayat tercakup: $total (seharusnya 6236) | masalah: $bad | perlu manual: $manual\n";

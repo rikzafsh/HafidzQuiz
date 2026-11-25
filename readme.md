@@ -1,35 +1,37 @@
 # HafidzQuiz
 
-Aplikasi web berbentuk kuis ala Duolingo untuk **menghafal Al-Qur'an**. Responsif (PC dan HP), memakai akun pengguna untuk menyimpan XP dan capaian, dan dirancang agar course lain (hafalan matan manzumah, syair, belajar aksara) bisa ditambahkan nanti. Tahap ini baru berisi course **Hafalan Al-Qur'an**.
+Aplikasi web berbentuk kuis ala Duolingo untuk **menghafal Al-Qur'an**. Responsif (PC dan HP), memakai akun pengguna untuk menyimpan XP dan capaian, dan dirancang agar course lain (hafalan matan manzumah, syair, belajar aksara) bisa ditambahkan nanti. Aplikasi bersifat **multi-kursus**: pengguna dapat mengikuti beberapa kursus sekaligus dan berpindah di antaranya. Saat ini ada dua kursus: **Tahfidz** (hafalan Al-Qur'an, siap dipelajari) dan **Tuḥfatulaṭfāl** (hafalan matan manzumah, masih berstatus *segera hadir*).
 
 > Dokumen ini dan `knowledge.md` diperbarui setiap ada permintaan baru.
-> Terakhir diperbarui: 18 November 2026.
+> Terakhir diperbarui: 25 November 2026.
 
 ---
 
 ## Daftar isi
 
 1. [Fitur](#fitur)
-2. [Struktur belajar](#struktur-belajar)
-3. [Jenis soal](#jenis-soal)
-4. [Hadiah, nyawa, dan aturan skor](#hadiah-nyawa-dan-aturan-skor)
-5. [Mushaf](#mushaf)
-6. [Profil dan administrator](#profil-dan-administrator)
-7. [Teknologi dan struktur proyek](#teknologi-dan-struktur-proyek)
-8. [Instalasi dan menjalankan](#instalasi-dan-menjalankan)
-9. [Konfigurasi](#konfigurasi)
-10. [Data](#data)
-11. [API](#api)
-12. [Basis data](#basis-data)
-13. [Keamanan dan penilaian di server](#keamanan-dan-penilaian-di-server)
-14. [Pengujian](#pengujian)
-15. [Batasan dan rencana](#batasan-dan-rencana)
+2. [Kursus (multi-course)](#kursus-multi-course)
+3. [Struktur belajar](#struktur-belajar) — kursus Tahfidz
+4. [Jenis soal](#jenis-soal)
+5. [Hadiah, nyawa, dan aturan skor](#hadiah-nyawa-dan-aturan-skor)
+6. [Mushaf](#mushaf)
+7. [Profil dan administrator](#profil-dan-administrator)
+8. [Teknologi dan struktur proyek](#teknologi-dan-struktur-proyek)
+9. [Instalasi dan menjalankan](#instalasi-dan-menjalankan)
+10. [Konfigurasi](#konfigurasi)
+11. [Data](#data)
+12. [API](#api)
+13. [Basis data](#basis-data)
+14. [Keamanan dan penilaian di server](#keamanan-dan-penilaian-di-server)
+15. [Pengujian](#pengujian)
+16. [Batasan dan rencana](#batasan-dan-rencana)
 
 ---
 
 ## Fitur
 
-- **Belajar bertingkat**: Juz → Hizb → Thumn (480 thumn). Setiap thumn punya 8 level × 4 lesson, bukan sekadar daftar soal.
+- **Multi-kursus**: pilih kursus lewat tombol di bilah atas (ikon kursus + XP kursus), tambah kursus baru lewat katalog, dan berpindah kapan saja. Progres tiap kursus terpisah.
+- **Belajar bertingkat** (kursus Tahfidz): Juz → Hizb → Thumn (480 thumn). Setiap thumn punya 8 level × 4 lesson, bukan sekadar daftar soal.
 - **Peta belajar** dengan tombol berbentuk oktagon, warna pelangi per thumn (merah = thumn 1 … ungu = thumn 8), cincin progres, dan popup "Lesson x dari y + XP" sebelum mulai.
 - **Soal acak yang beragam** (11 tipe), selalu dibuat dari ayat dalam cakupan unitnya, makin sulit seiring level.
 - **Unit ulasan**: ulasan Hizb (4 level) dan ulasan Juz (8 level), serta level ulasan Rub/Nisf pada Thumn 2, 4, dan 6.
@@ -44,7 +46,36 @@ Aplikasi web berbentuk kuis ala Duolingo untuk **menghafal Al-Qur'an**. Responsi
 
 ---
 
+## Kursus (multi-course)
+
+| Kursus | Id | Status | Isi |
+|---|---|---|---|
+| **Tahfidz** | `tahfidz` | siap | Hafalan Al-Qur'an per thumn (lihat bagian berikutnya sampai Mushaf) |
+| **Tuḥfatulaṭfāl** | `tuhfatulatfal` | draft | Hafalan matan manzumah Tuḥfatulaṭfāl. Bisa diikuti, tetapi materi dan format belajarnya belum dibuat (menampilkan halaman "segera hadir"); detail teknisnya menyusul |
+
+**Cara kerja untuk pengguna**
+
+- Pengguna baru **otomatis mengikuti Tahfidz**. Pengguna lama (sebelum fitur ini) juga otomatis mengikuti Tahfidz dan seluruh progres serta XP-nya menjadi milik Tahfidz.
+- Tombol kursus di bilah atas menampilkan ikon kursus aktif, **XP kursus itu**, dan panah. Mengkliknya membuka dropdown **"KURSUS SAYA"** (daftar kursus yang diikuti, tanda centang pada kursus aktif) dengan tombol **"Tambah kursus baru"** di bawahnya.
+- **Tambah kursus baru** membuka katalog berisi kursus yang belum pernah diikuti; **"Mulai belajar"** langsung mendaftarkan pengguna dan membuka kursus itu. Kursus yang belum siap diberi lencana "Segera hadir".
+- Menu (Belajar, Mushaf, Profil) menyesuaikan kursus aktif: Mushaf hanya ada di Tahfidz.
+- Profil menampilkan XP total, daftar **"Kursus saya"** beserta ringkasan dan XP masing-masing, serta pencapaian.
+
+**Cakupan data**
+
+| Data | Cakupan |
+|---|---|
+| XP | Global (`users.xp`, dasar pencapaian "Penuntut Ilmu") **dan** per kursus (`enrollments.xp`, tampil di tombol kursus) |
+| Streak, dirham, rekor streak, total dirham | Global (lintas kursus) |
+| Progres, sesi kuis, masukan pengguna | Per kursus |
+
+**Untuk pengembang**: course baru ditambahkan tanpa mengubah kode platform. Panduan langkah demi langkah ada di [`courses/README.md`](courses/README.md).
+
+---
+
 ## Struktur belajar
+
+> Bagian ini sampai **Mushaf** menjelaskan kursus **Tahfidz**.
 
 Setiap juz berisi **19 unit**, berurutan:
 
@@ -96,7 +127,7 @@ Setiap thumn yang terkunci punya tombol biru "LOMPAT KE SINI?". Tesnya:
 
 ## Jenis soal
 
-Semua soal dibuat acak di `gen.php`. Bobot kemunculan per level ada di konstanta `LEVEL_TYPES`.
+Semua soal Tahfidz dibuat acak di `courses/tahfidz/gen.php`. Bobot kemunculan per level ada di konstanta `LEVEL_TYPES`.
 
 | Kode | Tipe | Deskripsi | Mulai level |
 |---|---|---|---|
@@ -168,7 +199,7 @@ Menu **Mushaf** (di bawah Belajar) menampilkan ayat seperti halaman mushaf:
 
 ### Menu utama
 
-Dua menu di sidebar kiri (PC, berlabel), sidebar ikon (tablet ≤ 1000px), atau tab bawah (HP ≤ 700px): **Belajar**, **Mushaf**, **Profil**. Layar kuis dan layar hasil tampil penuh tanpa menu.
+Sidebar kiri (PC, berlabel), sidebar ikon (tablet ≤ 1000px), atau tab bawah (HP ≤ 700px). Isinya mengikuti kursus aktif ditambah **Profil**: untuk Tahfidz **Belajar**, **Mushaf**, **Profil**; untuk Tuḥfatulaṭfāl **Belajar**, **Profil**. Layar kuis dan layar hasil tampil penuh tanpa menu.
 
 ### Profil
 
@@ -179,14 +210,14 @@ Banner dan avatar, nama, tanggal bergabung, kartu statistik (streak dengan keter
 |---|---|
 | Api Semangat (streak terpanjang) | 3, 7, 14, 30, 100, 365 hari |
 | Penuntut Ilmu (XP) | 100, 500, 1.000, 5.000, 10.000, 30.000 |
-| Penghafal (thumn selesai) | 1, 4, 8, 16, 48, 160, 480 |
+| Penghafal (thumn selesai; khusus Tahfidz, disediakan modul kursus) | 1, 4, 8, 16, 48, 160, 480 |
 | Pengumpul Dirham (total dirham yang pernah didapat) | 20, 100, 300, 1.000 |
 
-Tombol di profil: Muroja'ah bebas (kuis lama), Laporan masukan (khusus admin), Keluar.
+Tombol di profil: Muroja'ah bebas (kuis lama; hanya saat kursus aktif Tahfidz), Laporan masukan (khusus admin), Keluar. Kartu statistik, pencapaian, dan tombol khusus kursus disediakan modul klien masing-masing kursus.
 
 ### Halaman admin: `admin.php`
 
-Hanya untuk akun yang namanya tercantum di `ADMIN_USERS` (`core.php`). Isi: ringkasan jumlah masukan, rekap per tipe soal, 10 lesson paling bermasalah, daftar masukan dengan filter (jenis, tipe soal, status, ID unit), tombol "Selesai" untuk menandai sudah ditangani, dan ekspor CSV. Soal dan jawaban pengguna diambil server dari catatan sesi, bukan dari kiriman browser.
+Hanya untuk akun yang namanya tercantum di `ADMIN_USERS` (`src/bootstrap.php`). Isi: ringkasan jumlah masukan, rekap per tipe soal, 10 lesson paling bermasalah, daftar masukan dengan filter (**kursus**, jenis, tipe soal, status, ID unit), tombol "Selesai" untuk menandai sudah ditangani, dan ekspor CSV. Soal dan jawaban pengguna diambil server dari catatan sesi, bukan dari kiriman browser.
 
 ---
 
@@ -194,34 +225,65 @@ Hanya untuk akun yang namanya tercantum di `ADMIN_USERS` (`core.php`). Isi: ring
 
 **PHP** (tanpa framework) · **SQLite** via PDO · **JavaScript** vanilla · **CSS** biasa. Tidak ada langkah build.
 
+Arsitekturnya **platform + course**: platform mengurus akun, XP, streak, dirham, pendaftaran kursus, dan mesin sesi kuis; setiap kursus berisi materi dan aturan belajarnya sendiri.
+
 ```
-app.php                    Halaman utama (shell HTML; nomor versi aset otomatis)
-api.php                    API JSON (semua aksi)
-core.php                   Sesi, database, pemuatan data Al-Qur'an dan thumn, konfigurasi
-gen.php                    Pembuat soal
-mushaf.php                 Logika halaman mushaf dan pencarian posisi
-quran_json_parser.php      Parser data ayat dan pemotong ayat (kompatibel dengan versi lama)
-admin.php                  Laporan masukan pengguna
-xlsx_ke_mushaf.php         Konverter Excel/CSV → data/mushaf.json (+ validasi)
-csv_ke_thumn.php           Konverter CSV → data/thumn.json (+ validasi)
-cek_thumn.php              Diagnostik thumn.json (hapus setelah selesai dipakai)
-assets/js/app.js           Seluruh antarmuka
-assets/css/app.css         Gaya
-data/{1..114}.json         Teks ayat per surah (dari repo asli)
-data/thumn.json            Titik awal 480 thumn (dibaca aplikasi)
-data/thumn.csv             Sumber yang diedit untuk thumn.json
-data/mushaf.json           Pembagian halaman mushaf (dibaca aplikasi)
-data/Mushaf_Page_Division.xlsx   Sumber yang diedit untuk mushaf.json
-storage/                   Dibuat otomatis: hafidz.sqlite, surah_names.json, .htaccess
+HafidzQuiz/
+├── app.php                     Halaman utama (shell HTML; memuat skrip JS otomatis, versi aset otomatis)
+├── api.php                     Router API tipis: aksi platform + meneruskan aksi kursus ke modul kursus
+├── admin.php                   Laporan masukan pengguna (lintas kursus)
+├── quran_json_parser.php       Parser ayat & pemotong ayat (dipakai Tahfidz dan kuis lama)
+├── README.md · knowledge.md    Dokumentasi
+│
+├── src/                        PLATFORM (kode bersama semua kursus)
+│   ├── bootstrap.php           Sesi, zona waktu, konstanta (DEV_MODE, ADMIN_USERS, DEFAULT_COURSE), out()/fail()
+│   ├── db.php                  Koneksi SQLite, skema, migrasi otomatis
+│   ├── courses.php             Registry kursus, pendaftaran (enroll), progres per kursus
+│   ├── users.php               Pengguna, streak, award() (pemberian XP)
+│   └── quiz.php                Mesin sesi kuis generik: newAttempt, check, finish, feedback
+│
+├── courses/                    KURSUS (satu folder per kursus)
+│   ├── README.md               Panduan menambah kursus baru
+│   ├── tahfidz/                Kursus Tahfidz
+│   │   ├── course.php          Manifest
+│   │   ├── boot.php            Memuat kode kursus
+│   │   ├── data.php            Data Al-Qur'an: surah(), thumns(), thumnAyat(), ...
+│   │   ├── gen.php             Pembuat soal
+│   │   ├── units.php           Unit/level/lesson, chest, lompat, penerapan hasil sesi
+│   │   ├── mushaf.php          Logika halaman mushaf
+│   │   ├── handlers.php        Aksi API kursus + hook finish & profile
+│   │   └── tools/              Alat CLI: csv_ke_thumn.php, xlsx_ke_mushaf.php, cek_thumn.php
+│   └── tuhfatulatfal/
+│       └── course.php          Manifest (status draft)
+│
+├── assets/
+│   ├── css/app.css             Gaya
+│   └── js/
+│       ├── core.js             Pembantu DOM, panggilan API, state, keyboard, registry Courses
+│       ├── icons.js            Ikon SVG flat
+│       ├── quiz.js             Mesin sesi kuis klien
+│       ├── shell.js            Menu, bilah atas, pemilih kursus, katalog, layar masuk, profil
+│       ├── boot.js             Titik masuk
+│       └── courses/
+│           ├── tahfidz.js      Modul klien Tahfidz (daftar juz, peta belajar, Mushaf)
+│           └── tuhfatulatfal.js  Modul klien Tuḥfatulaṭfāl ("segera hadir")
+│
+├── data/
+│   ├── {1..114}.json           Teks ayat per surah (dari repo asli)
+│   ├── thumn.json · thumn.csv  Titik awal 480 thumn (dibaca aplikasi · sumber yang diedit)
+│   └── mushaf.json · Mushaf_Page_Division.xlsx   Pembagian halaman mushaf (dibaca aplikasi · sumber yang diedit)
+└── storage/                    Dibuat otomatis: hafidz.sqlite, surah_names.json, .htaccess
 ```
 
-File dari repo asli yang tetap dipakai: `index.php`, `quiz.php`, `generate.php` (kuis lama, kini "Muroja'ah bebas"), dan `assets/js/script.js` serta `assets/css/style.css` milik kuis lama. `thumn_cek.csv` adalah sisa keluaran lama dan boleh dihapus.
+Urutan pemuatan skrip klien: `core → icons → quiz → shell → courses/* → boot`. Kode PHP kursus hanya dimuat saat kursus itu dipakai.
+
+File dari repo asli yang tetap dipakai: `index.php`, `quiz.php`, `generate.php` (kuis lama, kini "Muroja'ah bebas"), dan `assets/js/script.js` serta `assets/css/style.css` milik kuis lama; semuanya tetap di tempatnya.
 
 ---
 
 ## Instalasi dan menjalankan
 
-**Kebutuhan**: PHP 8.1 atau lebih baru (diuji dengan 8.3) dengan ekstensi `pdo_sqlite`, `mbstring`, `json`, dan sesi. Ekstensi `zip` hanya diperlukan untuk `xlsx_ke_mushaf.php` (tidak diperlukan bila memakai CSV).
+**Kebutuhan**: PHP 8.1 atau lebih baru (diuji dengan 8.3) dengan ekstensi `pdo_sqlite`, `mbstring`, `json`, dan sesi. Ekstensi `zip` hanya diperlukan untuk `courses/tahfidz/tools/xlsx_ke_mushaf.php` (tidak diperlukan bila memakai CSV).
 
 ```bash
 # dari folder proyek
@@ -234,23 +296,32 @@ Di hosting Apache/Nginx: letakkan proyek di folder web, pastikan folder `storage
 Langkah pertama:
 
 1. Buka `app.php`, pilih **Daftar**, buat akun (nama pengguna 3–30 karakter: huruf, angka, `_ . -`; kata sandi minimal 6 karakter).
-2. Untuk membuka halaman admin, daftar dengan nama pengguna `admin` atau ubah `ADMIN_USERS` di `core.php`.
-3. Database SQLite dan tabelnya dibuat otomatis saat pertama kali dipakai. Database lama dimigrasi otomatis (kolom baru ditambahkan).
+2. Untuk membuka halaman admin, daftar dengan nama pengguna `admin` atau ubah `ADMIN_USERS` di `src/bootstrap.php`.
+3. Database SQLite dan tabelnya dibuat otomatis saat pertama kali dipakai. Database lama dimigrasi otomatis, tanpa kehilangan data (lihat di bawah).
 
-Setelah mengubah `app.js` atau `app.css`, `app.php` otomatis menambahkan nomor versi aset sehingga browser mengambil berkas terbaru.
+Setelah mengubah berkas di `assets/`, `app.php` otomatis menambahkan nomor versi aset (waktu ubah berkas) sehingga browser mengambil berkas terbaru.
+
+### Memperbarui dari versi sebelum multi-kursus
+
+1. **Hapus berkas lama** yang sudah dipindahkan (kalau dibiarkan tidak berbahaya, tetapi membingungkan): `core.php`, `gen.php`, `mushaf.php`, `cek_thumn.php`, `csv_ke_thumn.php`, `xlsx_ke_mushaf.php`, `thumn_cek.csv`, dan `assets/js/app.js`.
+2. Unggah seluruh struktur baru (`src/`, `courses/`, `assets/js/*.js` dan `assets/js/courses/`, `api.php`, `admin.php`, `app.php`, `assets/css/app.css`).
+3. **Jangan hapus `storage/`**. Saat pertama dibuka, database dimigrasi otomatis: tabel `progress` diubah ke skema per-kursus (kolom `thumn` → `unit` + `course`), semua pengguna lama didaftarkan ke Tahfidz dengan XP lamanya sebagai XP Tahfidz, dan `attempts`/`feedback` lama diberi kursus `tahfidz`. Progres, chest, XP, streak, dan dirham tetap utuh (diuji dengan database format lama).
+4. Tekan Ctrl+F5 di browser.
 
 ---
 
 ## Konfigurasi
 
-Di `core.php`:
+Di `src/bootstrap.php`:
 
 | Konstanta | Fungsi |
 |---|---|
 | `DEV_MODE` (`true`/`false`) | **Mode developer sementara.** Saat `true`, muncul tombol DEV di bilah atas: membuka level terkunci untuk pengetesan, serta tombol "Tandai selesai s.d. level ini" dan "Reset unit" di popup. **Ubah ke `false` sebelum dipakai pengguna sebenarnya**: tombol hilang dan endpoint `dev_*` menolak dengan 403 |
 | `ADMIN_USERS` | Daftar nama pengguna yang boleh membuka `admin.php` |
+| `DEFAULT_COURSE` | Kursus yang otomatis diikuti pengguna baru (`tahfidz`) |
 | `date_default_timezone_set('Asia/Jakarta')` | Zona waktu untuk streak harian |
-| `AYAT_COUNT` | Jumlah ayat 114 surah (untuk validasi) |
+
+Di `courses/tahfidz/data.php`: `AYAT_COUNT` (jumlah ayat 114 surah, untuk validasi data thumn).
 
 ---
 
@@ -278,8 +349,8 @@ Larik objek ayat. Bidang yang dipakai:
 Cara memperbarui: edit `data/thumn.csv` (pemisah `;` atau `,`; kolom `No;Juz;Hizb;Nisf;Rub;Thumn;No_Surah;Ayat_Awal`), lalu:
 
 ```bash
-php csv_ke_thumn.php        # validasi dulu; tidak menimpa thumn.json bila ada kesalahan
-php cek_thumn.php           # diagnostik tambahan (opsional)
+php courses/tahfidz/tools/csv_ke_thumn.php        # validasi dulu; tidak menimpa thumn.json bila ada kesalahan
+php courses/tahfidz/tools/cek_thumn.php           # diagnostik tambahan (opsional)
 ```
 
 ### Mushaf: `data/mushaf.json`
@@ -299,8 +370,8 @@ Contoh: ayat 2:102 terpotong tiga → baris dengan `Word_Count` 23, baris dengan
 Berkas Excel pengguna memiliki **3 sheet**; konverter hanya membaca **sheet pertama** (Sheet1: pembagian halaman, kini lengkap 604 halaman). **Sheet2** (topik/subtopik per ayat, baru 2:6–5:110) dan **Sheet3** (tema per ayat, baru 2:6–5:119) disiapkan untuk fitur berikutnya dan **belum dipakai aplikasi**.
 
 ```bash
-php xlsx_ke_mushaf.php                 # membaca data/Mushaf_Page_Division.xlsx
-php xlsx_ke_mushaf.php data/file.csv   # atau CSV
+php courses/tahfidz/tools/xlsx_ke_mushaf.php                 # membaca data/Mushaf_Page_Division.xlsx
+php courses/tahfidz/tools/xlsx_ke_mushaf.php data/file.csv   # atau CSV
 ```
 
 Skrip memvalidasi: halaman berurutan tanpa lubang, bagian berurutan, ayat ada, posisi tidak mundur, `Word_Count` kumulatif dan kurang dari jumlah kata ayat. Hasilnya mencetak ringkasan dan daftar bagian yang terpotong di tengah ayat untuk dicek ulang.
@@ -309,24 +380,36 @@ Skrip memvalidasi: halaman berurutan tanpa lubang, bagian berurutan, ayat ada, p
 
 ## API
 
-Semua lewat `api.php?a=<aksi>`; kecuali `register`/`login`, semuanya butuh login. Respons JSON; kesalahan berbentuk `{"error": "..."}` dengan kode HTTP yang sesuai.
+Semua lewat `api.php?a=<aksi>`; kecuali `register`/`login`, semuanya butuh login. Aksi **platform** ditangani `api.php`; aksi **khusus kursus** diteruskan ke modul kursus lewat manifestnya dan menerima parameter `?course=<id>` (klien otomatis mengirim kursus aktif). Pengguna yang belum bergabung di kursus itu ditolak (403). Respons JSON; kesalahan berbentuk `{"error": "..."}` dengan kode HTTP yang sesuai.
 
 | Aksi | Metode | Fungsi |
 |---|---|---|
-| `register`, `login`, `logout`, `me` | POST/GET | Akun dan sesi |
+**Aksi platform**
+
+| Aksi | Metode | Fungsi |
+|---|---|---|
+| `register`, `login`, `logout`, `me` | POST/GET | Akun dan sesi (`me`/`login` memuat `course`, `courses`, `xp` tiap kursus) |
+| `courses` | GET | Kursus yang diikuti (`mine`), yang tersedia (`available`), dan kursus aktif (`current`) |
+| `course_enroll` | POST | Bergabung ke kursus (`course`); langsung menjadi kursus aktif. 404 bila tak dikenal, 409 bila sudah bergabung |
+| `course_switch` | POST | Pindah ke kursus yang sudah diikuti (`course`). 403 bila belum bergabung |
+| `check` | POST | Memeriksa satu jawaban (atau satu pasangan) di server |
+| `finish` | POST | Menutup sesi; skor dan waktu dihitung server, hasil diterapkan oleh kursus pemilik sesi (hook `finish`) |
+| `feedback` | POST | Menyimpan masukan (soal diambil dari sesi di server; tersimpan dengan kursusnya) |
+| `profile` | GET | Statistik profil + daftar kursus beserta statistiknya (hook `profile`) |
+
+**Aksi kursus Tahfidz** (`courses/tahfidz/handlers.php`)
+
+| Aksi | Metode | Fungsi |
+|---|---|---|
 | `juz` | GET | Daftar 30 juz dan progresnya |
 | `units&juz=N` | GET | Unit, level, chest, tombol lompat untuk satu juz |
 | `quiz&unit=U&level=L&lesson=S` | GET | Membuat sesi kuis; mengirim soal **tanpa kunci** dan token `attempt` |
 | `quiz&unit=U&jump=1` | GET | Sesi tes lompat 25 soal |
-| `check` | POST | Memeriksa satu jawaban (atau satu pasangan) di server |
-| `finish` | POST | Menutup sesi; skor, XP, dan waktu dihitung server |
 | `claim` | POST | Membuka chest (`unit`, `chest` = 4 atau 7) |
-| `feedback` | POST | Menyimpan masukan (soal diambil dari sesi di server) |
-| `profile` | GET | Statistik profil |
 | `mushaf_meta`, `mushaf&page=N`, `mushaf_find` | GET | Data dan navigasi mushaf |
 | `dev_mark`, `dev_reset` | POST | Alat developer (hanya bila `DEV_MODE` = true) |
 
-ID unit: `0–479` = thumn · `1001–1060` = Ulasan Hizb (1000 + nomor hizb) · `2001–2030` = Ulasan Juz (2000 + nomor juz).
+ID unit Tahfidz: `0–479` = thumn · `1001–1060` = Ulasan Hizb (1000 + nomor hizb) · `2001–2030` = Ulasan Juz (2000 + nomor juz).
 
 ---
 
@@ -336,10 +419,11 @@ SQLite di `storage/hafidz.sqlite`:
 
 | Tabel | Isi |
 |---|---|
-| `users` | `id, username, hash, xp, streak, last_day, dirham, created_at, streak_peak, dirham_total` |
-| `progress` | `user_id, thumn (= ID unit), node, stars, best`. Kunci `node`: `V{level}.{lesson}` (lesson selesai), `C4`/`C7` (chest terbuka; jumlah dirham di kolom `stars`), `JUMP` (unit dilewati) |
-| `attempts` | Sesi kuis aktif: soal beserta kunci jawaban, status tiap soal, nyawa, waktu mulai. Dibersihkan setelah 24 jam |
-| `feedback` | Masukan pengguna: jenis, alasan, catatan, soal dan jawaban, status "selesai ditangani" |
+| `users` | `id, username, hash, xp, streak, last_day, dirham, created_at, streak_peak, dirham_total, course` (kursus aktif) |
+| `enrollments` | `user_id, course, xp, enrolled_at, last_active`: kursus yang diikuti dan XP per kursus |
+| `progress` | `user_id, course, unit (= ID unit di dalam kursus), node, stars, best`. Kunci `node` (Tahfidz): `V{level}.{lesson}` (lesson selesai), `C4`/`C7` (chest terbuka; jumlah dirham di kolom `stars`), `JUMP` (unit dilewati) |
+| `attempts` | Sesi kuis aktif (dengan `course`): soal beserta kunci jawaban, status tiap soal, nyawa, waktu mulai. Dibersihkan setelah 24 jam |
+| `feedback` | Masukan pengguna (dengan `course`): jenis, alasan, catatan, soal dan jawaban, status "selesai ditangani" |
 
 ---
 
@@ -358,6 +442,8 @@ Keterbatasan yang diketahui: tidak ada pembatasan laju (rate limiting) pada logi
 
 Pengujian dilakukan otomatis dengan Chromium headless (Playwright) dan skrip API. Data thumn dan pembagian mushaf adalah data asli pengguna; teks ayat untuk uji berasal dari ayat tiruan atau dari paket npm `quran-json` (CC-BY-4.0, dipakai **hanya untuk pengujian lokal**, tidak termasuk dalam proyek). Yang sudah terbukti: seluruh alur kuis dan penilaian server (termasuk upaya curang), semua tipe soal, aturan buka-kunci, chest, tes lompat, masukan dan halaman admin, streak yang hangus dan nilai tertinggi untuk pencapaian, konverter Excel/CSV (termasuk data rusak), dan untuk Mushaf: seluruh 6.236 ayat muncul tepat sekali dan tersusun kembali persis, 6.234 ayat berhalaman sama dengan data mushaf Hafs (selisih di 2:48 dan 69:8 mengikuti datamu), 132 nilai `Word_Count` valid terhadap jumlah kata ayat, 480 label margin pembagian benar dan sejajar dengan baris ۞ (selisih ≤ 0,16px), serta **seluruh 604 halaman muat tanpa scroll** di 8 ukuran layar (1 halaman) dan 302 spread di 4 ukuran layar (2 halaman).
 
+Multi-kursus diuji dengan database format lama (migrasi tanpa kehilangan data), pendaftaran dan perpindahan kursus (termasuk penolakan 403/404/409), isolasi progres antar kursus, XP per kursus, serta alur belajar lengkap di browser pada layar 1100px (dropdown, katalog, satu lesson sampai layar hasil, profil, Mushaf). Posisi dropdown kursus diuji di lima lebar layar (320–1100px) dan di tema terang maupun gelap.
+
 Belum diuji: data ayat asli lengkap (114 surah) di dalam aplikasi, seret-lepas di layar sentuh asli, Safari dan Firefox, serta hosting sebenarnya.
 
 ---
@@ -365,5 +451,5 @@ Belum diuji: data ayat asli lengkap (114 surah) di dalam aplikasi, seret-lepas d
 ## Batasan dan rencana
 
 - Pemenggalan baris mushaf (15 baris per halaman) dan perombakan aturan pembagian Hizb/Juz menunggu arahan pengguna; sheet topik dan tema di Excel belum dipakai.
-- Hanya course Al-Qur'an. Rencana: course matan manzumah, syair, dan aksara dengan generator soalnya sendiri di atas kerangka unit/level/lesson yang sama.
+- **Tuḥfatulaṭfāl** baru berupa kerangka (status draft, halaman "segera hadir"); materi dan format belajarnya menunggu detail teknis dari pengguna. Rencana kursus lain: syair dan aksara, dengan pembuat soalnya sendiri di atas kerangka kursus yang sama.
 - Ide berikutnya: mode review untuk ayat yang sering salah, audio murottal per ayat, tata letak peta di samping untuk PC, toko untuk membelanjakan dirham, papan peringkat.
