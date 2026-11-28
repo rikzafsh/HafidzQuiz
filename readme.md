@@ -69,7 +69,7 @@ Aplikasi web berbentuk kuis ala Duolingo untuk **menghafal Al-Qur'an**. Responsi
 | Streak, dirham, rekor streak, total dirham | Global (lintas kursus) |
 | Progres, sesi kuis, masukan pengguna | Per kursus |
 
-**Untuk pengembang**: course baru ditambahkan tanpa mengubah kode platform. Panduan langkah demi langkah ada di [`courses/README.md`](courses/README.md).
+**Untuk pengembang**: course baru ditambahkan tanpa mengubah kode platform. Panduan langkah demi langkah ada di [`courses/README.md`](courses/README.md). Panduan itu **mandiri**: berisi kontrak soal, hook `finish`, fungsi bantu PHP/JS, contoh lengkap yang sudah diuji, dan templat perintah, sehingga setiap course dapat dibuat di percakapan terpisah hanya dengan mengunggah berkas itu (menguji tetap perlu proyeknya).
 
 ---
 

@@ -3,7 +3,7 @@
 Catatan semua informasi, pengetahuan, kebutuhan, dan keputusan yang diberikan pengguna selama pengembangan HafidzQuiz. Dipakai sebagai ingatan proyek: siapa pun (atau sesi berikutnya) yang melanjutkan pengembangan bisa memahami *mengapa* aplikasi dibuat begini.
 
 > **Aturan pemeliharaan:** setiap kali pengguna meminta sesuatu, dokumen ini dan `README.md` diperbarui (permintaan baru dicatat di bagian 11, informasi baru masuk ke bagian yang sesuai, pertanyaan yang terjawab dipindahkan dari bagian 9).
-> Terakhir diperbarui: 25 November 2026 (setelah permintaan P19).
+> Terakhir diperbarui: 25 November 2026 (setelah permintaan P20).
 
 **Cara membaca:** bagian 1–7 adalah sumber kebenaran dari pengguna. Bagian 8 berisi asumsi Claude yang **belum dikonfirmasi** dan boleh diubah kapan saja. Rujukan `[P#]` mengarah ke riwayat permintaan di bagian 11.
 
@@ -313,6 +313,7 @@ Paket npm `quran-meta` (daftar rub dan halaman mushaf Hafs) dan data hizb dari Q
 | P17 | Buat `README.md` dan `knowledge.md`; perbarui setiap ada permintaan | Dokumen ini dan `README.md` dibuat |
 | P18 | Menjawab 7 pertanyaan terbuka; mengunggah Excel mushaf lengkap (3 sheet); klarifikasi bahwa yang hangus adalah streak (bukan XP) | `mushaf.json` 604 halaman; pencapaian memakai streak tertinggi dan total dirham tertinggi; streak yang tampil hangus saat runtutan terputus; sheet topik/tema dianalisis; dokumen diperbarui |
 | P19 | Fitur multi-kursus (pengguna bisa meng-enroll ke kursus baru, pemilih kursus ala Duolingo); course lama bernama "Tahfidz"; tambah course "Tuḥfatulaṭfāl" (detail menyusul); restrukturisasi direktori; kirim daftar berkas yang berubah dan struktur direktori | Arsitektur platform + course (`src/`, `courses/`), migrasi database otomatis (`progress` per kursus, tabel `enrollments`), dropdown kursus + katalog, kerangka Tuḥfatulaṭfāl (draft), `courses/README.md`; diuji dengan database format lama dan di browser |
+| P20 | Apakah `courses/README.md` saja cukup untuk membuat isi course di percakapan baru tanpa proyek lengkap? | Jawaban: versi lama belum cukup. `courses/README.md` ditulis ulang menjadi mandiri (format soal choice/fill/match, kontrak aksi `quiz`, hook `finish` beserta kunci hasil, `award()`, `newAttempt()`, skema DB, fungsi & kelas CSS klien, daftar ikon, templat perintah, contoh course "contoh" lengkap). Contoh diekstrak dari README, dipasang ke salinan proyek, dan lolos uji API (register→enroll→quiz→check→finish→profile) serta uji browser. Menguji course tetap memerlukan zip proyek. |
 
 ---
 
